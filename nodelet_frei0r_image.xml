@@ -1,0 +1,9 @@
+<library path="lib/libfrei0r_image">
+  <class name="frei0r_image/Frei0r"
+      type="frei0r_image::Frei0r"
+      base_class_type="nodelet::Nodelet">
+    <description>
+      Process or generate an image using a selected frei0r plugin.
+    </description>
+  </class>
+</library>
