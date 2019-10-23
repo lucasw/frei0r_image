@@ -5,7 +5,7 @@ add_compile_options(-std=c++1z)
 
 find_package(catkin REQUIRED COMPONENTS
   dynamic_reconfigure
-  # ddynamic_reconfigure
+  ddynamic_reconfigure
   message_generation
   nodelet
   roscpp
@@ -24,12 +24,12 @@ roslint_cpp()
 find_package(Ceres REQUIRED)
 
 catkin_package(
-  # INCLUDE_DIRS include
+  INCLUDE_DIRS include
   CATKIN_DEPENDS ddynamic_reconfigure
 )
 
 include_directories(
-  # include
+  include
   ${catkin_INCLUDE_DIRS}
 )
 
@@ -42,6 +42,13 @@ target_link_libraries(frei0r_image
   stdc++fs
 )
 # add_dependencies(frei0r_image ${PROJECT_NAME}_gencpp)
+
+add_executable(list_frei0rs src/list_frei0rs.cpp)
+target_link_libraries(list_frei0rs
+  ${catkin_LIBRARIES}
+  frei0r_image
+  stdc++fs
+)
 
 install(TARGETS frei0r_image
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
