@@ -12,7 +12,10 @@
 #include <frei0r.h>
 #include <iostream>
 #include <map>
+#include <nodelet/nodelet.h>
 #include <vector>
+#include <ros/ros.h>
+#include <sensor_msgs/Image.h>
 #include <string>
 
 typedef int  (*f0r_init_t)();
@@ -38,11 +41,27 @@ typedef void (*f0r_update2_t)(f0r_instance_t instance, double time,
       const uint32_t* inframe3,
       uint32_t* outframe);
 
-struct Frei0rPlugin
+namespace frei0r_image
 {
-  Frei0rPlugin(const std::string& name)
+
+class Frei0rImage : public nodelet::Nodelet
+{
+public:
+  Frei0rImage()
   {
+  }
+
+  virtual void onInit()
+  {
+    pub_ = getNodeHandle().advertise<sensor_msgs::Image>("image", 3);
+
+    std::string name = "/usr/lib/frei0r-1/nois0r.so";
+    getPrivateNodeHandle().getParam("library", name);
+
     handle_ = dlopen(name.c_str(), RTLD_NOW);
+    if (!handle_) {
+      return;
+    }
     // std::cout << name << " " << handle_ << "\n";
 
     init = (f0r_init_t)dlsym(handle_, "f0r_init");
@@ -57,12 +76,19 @@ struct Frei0rPlugin
     update2 = (f0r_update2_t)dlsym(handle_, "f0r_update2");
 
     get_plugin_info(&fi_);
-    unsigned int width = 8;
-    unsigned int height = 8;
-    setSize(width, height);
+    int width = 8;
+    int height = 8;
+    getPrivateNodeHandle().getParam("width", width);
+    getPrivateNodeHandle().getParam("height", height);
+    unsigned int width_adjusted = (width / 8) * 8;
+    unsigned int height_adjusted = (height / 8) * 8;
+    setSize(width_adjusted, height_adjusted);
+
+    timer_ = getPrivateNodeHandle().createTimer(ros::Duration(0.1),
+        &Frei0rImage::update, this);
   }
 
-  ~Frei0rPlugin()
+  ~Frei0rImage()
   {
     if (instance_) {
       destruct(instance_);
@@ -96,7 +122,7 @@ struct Frei0rPlugin
     std::cout << "explanation: " << fi_.explanation << "\n";
 
     for (size_t i = 0; i < 8 && i < out_frame_.size(); ++i) {
-      std::cout << out_frame_[i] << " ";
+      std::cout << std::hex << out_frame_[i] << " ";
     }
     std::cout << "\n";
     std::cout << "}\n";
@@ -121,7 +147,7 @@ struct Frei0rPlugin
       instance_ = construct(width, height);
       const size_t num = width * height;  // * 4;
       in_frame_.resize(num);
-      out_frame_.resize(num);
+      // out_frame_.resize(num);
     }
     return true;
   }
@@ -132,7 +158,7 @@ struct Frei0rPlugin
   f0r_get_param_value_t get_param_value;
   f0r_set_param_value_t set_param_value;
 
-  void update(const double time_val = 0.0)
+  void update(const ros::TimerEvent& event)
   {
     if (!handle_) {
       return;
@@ -141,16 +167,32 @@ struct Frei0rPlugin
       std::cerr << "can't update without instance\n";
       return;
     }
+    const double time_val = event.current_real.toSec();
+
+    sensor_msgs::Image msg;
+    msg.header.stamp = event.current_real;
+    msg.encoding = "bgra8";
+    msg.data.resize(width_ * height_ * 4);
+    msg.width = width_;
+    msg.height = height_;
+    msg.step = width_ * 4;
+
     if ((fi_.plugin_type != F0R_PLUGIN_TYPE_MIXER2) &&
         (fi_.plugin_type != F0R_PLUGIN_TYPE_MIXER3)) {
       update1(instance_, time_val,
           &in_frame_[0],
-          &out_frame_[0]);
+          (uint32_t*)&msg.data[0]);
+          // &out_frame_[0]);
     }
+
+    pub_.publish(msg);
   }
   f0r_update_t update1;
   f0r_update2_t update2;
 private:
+  ros::Publisher pub_;
+  ros::Timer timer_;
+
   unsigned int width_ = 0;
   unsigned int height_ = 0;
 
@@ -169,6 +211,9 @@ private:
   f0r_instance_t instance_ = nullptr;
 };
 
+}  // namespace frei0r_image
+
+#if 0
 int main(int argc, char** argv)
 {
   std::vector<std::string> plugin_dirs = {
@@ -196,12 +241,12 @@ int main(int argc, char** argv)
     return 1;
   }
 
-  std::map<int, std::map<std::string, std::shared_ptr<Frei0rPlugin>>> plugins;
+  std::map<int, std::map<std::string, std::shared_ptr<Frei0rImage>>> plugins;
 
   // {
   //   const std::string plugin_name = "/usr/lib/frei0r-1/rgbnoise.so";
   for (const auto& plugin_name : plugin_names) {
-    auto plugin = std::make_shared<Frei0rPlugin>(plugin_name);
+    auto plugin = std::make_shared<Frei0rImage>(plugin_name);
     plugins[plugin->fi_.plugin_type][plugin_name] = plugin;
   }
 
@@ -215,3 +260,7 @@ int main(int argc, char** argv)
   std::cout << std::endl;
   return 0;
 }
+#endif
+
+#include <pluginlib/class_list_macros.h>
+PLUGINLIB_EXPORT_CLASS(frei0r_image::Frei0rImage, nodelet::Nodelet)

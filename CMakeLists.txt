@@ -33,7 +33,7 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-add_executable(frei0r_image
+add_library(frei0r_image
   src/frei0r_image.cpp
 )
 # add_dependencies(frei0r_image ${PROJECT_NAME}_gencfg)
@@ -44,9 +44,15 @@ target_link_libraries(frei0r_image
 # add_dependencies(frei0r_image ${PROJECT_NAME}_gencpp)
 
 install(TARGETS frei0r_image
-        ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-        LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-        RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION})
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(FILES
+  nodelet_${PROJECT_NAME}.xml
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+)
 
 # install(DIRECTORY config/
 #   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/config
