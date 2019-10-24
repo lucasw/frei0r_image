@@ -21,8 +21,6 @@ set(
 
 roslint_cpp()
 
-find_package(Ceres REQUIRED)
-
 catkin_package(
   INCLUDE_DIRS include
   CATKIN_DEPENDS ddynamic_reconfigure
