@@ -38,9 +38,9 @@ jobs:
           catkin build
           source devel/setup.bash
           cd ~/catkin_ws/src
-          ln -s $GITHUB_WORKSPACE
-          echo $GITHUB_WORKSPACE
-          ls -l
+          ln -s $CI_SOURCE_PATH
+          echo "::warning $CI_SOURCE_PATH"
+          echo "::warning `ls -l`"
           cd ..
           catkin build
       # - name: lint
