@@ -33,9 +33,11 @@ void Frei0rImage::onInit()
 {
   pub_ = getNodeHandle().advertise<sensor_msgs::Image>("image", 3);
 
-  std::string name = "/usr/lib/frei0r-1/nois0r.so";
-  getPrivateNodeHandle().getParam("library", name);
-  loadLibrary(name);
+  std::string path = "/usr/lib/frei0r-1/";
+  // std::string name = "/usr/lib/frei0r-1/nois0r.so";
+  plugin_name_ = path + "plasma.so";
+  getPrivateNodeHandle().getParam("library", plugin_name_);
+  loadLibrary(plugin_name_);
 
   unsigned int wd = 8;
   unsigned int ht = 8;
@@ -47,8 +49,41 @@ void Frei0rImage::onInit()
   ddr_->registerVariable<int>("height", 8,
       boost::bind(&Frei0rImage::heightCallback, this, _1), "height", 8, 1024);
 
-  for (size_t i = 0; i < fi_.num_params; ++i) {
+  for (int i = 0; i < fi_.num_params; ++i) {
     // TODO(lucasw) create a control for each parameter
+    f0r_param_info_t info;
+    get_param_info(&info, i);
+    // ss << "  " << i << " '" << info.name << "' " << param_types[info.type]
+    //     << " '" << info.explanation << "'\n";
+    switch (info.type) {
+      case (F0R_PARAM_BOOL): {
+
+      }
+      case (F0R_PARAM_DOUBLE): {
+        std::string param_name = info.name;
+        // spaces aren't allowed
+        for (char& c : param_name) {
+          if (c == ' ') {
+            c = '_';
+          }
+        }
+        // starting with numbers isn't allowed, so prefix everything
+        param_name = "p_" + param_name;
+        ROS_INFO_STREAM("'" << param_name << "'");
+        ddr_->registerVariable<double>(param_name, 0.0,  // param_name, 0.0,
+            boost::bind(&Frei0rImage::doubleCallback, this, _1, i),
+            info.explanation, 0.0, 1.0);
+      }
+      case (F0R_PARAM_COLOR): {
+
+      }
+      case (F0R_PARAM_POSITION): {
+
+      }
+      case (F0R_PARAM_STRING): {
+
+      }
+    }
   }
 
   ddr_->publishServicesTopics();
@@ -59,6 +94,7 @@ void Frei0rImage::onInit()
 
 bool Frei0rImage::loadLibrary(const std::string& name)
 {
+  plugin_name_ = name;
   handle_ = dlopen(name.c_str(), RTLD_NOW);
   if (!handle_) {
     return false;
@@ -104,10 +140,19 @@ void Frei0rImage::heightCallback(int height)
   setSize(width_, height_adjusted);
 }
 
+void Frei0rImage::doubleCallback(double value, int param_ind)
+{
+  if (!instance_) {
+    return;
+  }
+  ROS_INFO_STREAM(param_ind << " " << value);
+  set_param_value(instance_, (void*)&value, param_ind);
+}
+
 void Frei0rImage::print()
 {
   std::stringstream ss;
-  ss << "{\n";
+  ss << "'" << plugin_name_ << "' {\n";
   ss << fi_.name << " by " << fi_.author << "\n";
   ss << "type: " << fi_.plugin_type << " " << plugin_types[fi_.plugin_type] << "\n";
   ss << "color model: " << fi_.color_model << "\n";
@@ -133,7 +178,7 @@ void Frei0rImage::print()
 
 bool Frei0rImage::setSize(unsigned int& width, unsigned int& height)
 {
-  ROS_INFO_STREAM(width << " x " << height);
+  ROS_INFO_STREAM_THROTTLE(30, width << " x " << height);
   width = (width / 8) * 8;
   if (width == 0) {
     return false;

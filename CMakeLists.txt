@@ -43,6 +43,12 @@ target_link_libraries(frei0r_image
 )
 # add_dependencies(frei0r_image ${PROJECT_NAME}_gencpp)
 
+add_executable(frei0r_image_node src/frei0r_image_node.cpp)
+target_link_libraries(frei0r_image_node
+  ${catkin_LIBRARIES}
+  frei0r_image
+)
+
 add_executable(list_frei0rs src/list_frei0rs.cpp)
 target_link_libraries(list_frei0rs
   ${catkin_LIBRARIES}

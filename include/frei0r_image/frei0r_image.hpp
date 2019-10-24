@@ -56,6 +56,7 @@ public:
   ~Frei0rImage();
   void widthCallback(int width);
   void heightCallback(int height);
+  void doubleCallback(double value, int param_ind);
   const std::array<std::string, 4> plugin_types = {
       "filter", "source", "mixer2", "mixer3"};
   const std::array<std::string, 5> param_types = {
@@ -75,6 +76,7 @@ public:
   f0r_update_t update1;
   f0r_update2_t update2;
 private:
+  std::string plugin_name_;
   ros::Publisher pub_;
   ros::Timer timer_;
   std::unique_ptr<ddynamic_reconfigure::DDynamicReconfigure> ddr_;
