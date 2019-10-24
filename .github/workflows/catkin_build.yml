@@ -31,12 +31,15 @@ jobs:
 
       - name: build
         run: |
+          source /opt/ros/$ROS_DISTRO/setup.bash
           mkdir -p ~/catkin_ws/src
           cd ~/catkin_ws
           catkin build
           source devel/setup.bash
           cd ~/catkin_ws/src
           ln -s $GITHUB_WORKSPACE
+          echo $GITHUB_WORKSPACE
+          ls -l
           cd ..
           catkin build
       # - name: lint
