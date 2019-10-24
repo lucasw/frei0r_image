@@ -50,7 +50,14 @@ int main(int argc, char** argv)
 
   std::map<int, std::map<std::string, std::shared_ptr<frei0r_image::Frei0rImage>>> plugins;
 
+  std::map<std::string, bool> bad_frei0rs;
+  bad_frei0rs["/usr/lib/frei0r-1/curves.so"] = true;
+
   for (const auto& plugin_name : plugin_names) {
+    if (bad_frei0rs.count(plugin_name) > 0) {
+      std::cout << "skipping " << plugin_name << "\n";
+      continue;
+    }
     auto plugin = std::make_shared<frei0r_image::Frei0rImage>();
     plugin->loadLibrary(plugin_name);
     const int plugin_type = plugin->fi_.plugin_type;
