@@ -14,6 +14,7 @@ jobs:
       # Set the python path manually to include /usr/-/python2.7/dist-packages
       # as this is where apt-get installs python packages.
       PYTHONPATH: $PYTHONPATH:/usr/lib/python2.7/dist-packages:/usr/local/lib/python2.7/dist-packages
+      ROS_DISTRO: melodic
     steps:
       - uses: actions/checkout@v1
       - name: Install ROS
@@ -28,5 +29,17 @@ jobs:
             sudo rosdep init
             rosdep update --include-eol-distros  # Support EOL distros.
 
-      #- name: build
-      #  run: catkin build
+      - name: build
+        run: |
+          mkdir -p ~/catkin_ws/src
+          cd ~/catkin_ws
+          catkin build
+          source devel/setup.bash
+          cd ~/catkin_ws/src
+          ln -s $GITHUB_WORKSPACE
+          cd ..
+          catkin build
+      # - name: lint
+      #   run: |
+      #     cd ~/catkin_ws
+      #     catkin build frei0r_image --no-deps --catkin-make-args roslint
