@@ -3,5 +3,5 @@ frei0r ROS image integration
 
 
 ```
-sudo apt install frei0r-plugin
+sudo apt install frei0r-plugins
 ```
