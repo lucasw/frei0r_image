@@ -6,7 +6,6 @@
 
 #include <ddynamic_reconfigure/ddynamic_reconfigure.h>
 #include <experimental/filesystem>
-#include <frei0r_image/frei0r_image.hpp>
 // TODO(lucasw) there is a C++ header in the latest frei0r sources,
 // but it isn't in Ubuntu 18.04 released version currently
 // #define _UNIX03_SOURCE
@@ -57,7 +56,6 @@ void Frei0rImage::onInit()
     //     << " '" << info.explanation << "'\n";
     switch (info.type) {
       case (F0R_PARAM_BOOL): {
-
       }
       case (F0R_PARAM_DOUBLE): {
         std::string param_name = info.name;
@@ -75,13 +73,10 @@ void Frei0rImage::onInit()
             info.explanation, 0.0, 1.0);
       }
       case (F0R_PARAM_COLOR): {
-
       }
       case (F0R_PARAM_POSITION): {
-
       }
       case (F0R_PARAM_STRING): {
-
       }
     }
   }
@@ -146,7 +141,7 @@ void Frei0rImage::doubleCallback(double value, int param_ind)
     return;
   }
   ROS_INFO_STREAM(param_ind << " " << value);
-  set_param_value(instance_, (void*)&value, param_ind);
+  set_param_value(instance_, reinterpret_cast<void*>(&value), param_ind);
 }
 
 void Frei0rImage::print()
@@ -224,7 +219,7 @@ void Frei0rImage::update(const ros::TimerEvent& event)
       (fi_.plugin_type != F0R_PLUGIN_TYPE_MIXER3)) {
     update1(instance_, time_val,
         &in_frame_[0],
-        (uint32_t*)&msg.data[0]);
+        reinterpret_cast<uint32_t*>(&msg.data[0]));
         // &out_frame_[0]);
   }
 
