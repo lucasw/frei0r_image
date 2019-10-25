@@ -28,6 +28,20 @@ Frei0rImage::Frei0rImage()
 {
 }
 
+std::string sanitize(const std::string& text)
+{
+  std::string text2 = text;
+  // spaces aren't allowed
+  for (char& c : text2) {
+    if (c == ' ') {
+      c = '_';
+    }
+  }
+
+  text2 = "p" + text2;
+  return text2;
+}
+
 void Frei0rImage::onInit()
 {
   pub_ = getNodeHandle().advertise<sensor_msgs::Image>("image", 3);
@@ -38,15 +52,15 @@ void Frei0rImage::onInit()
   getPrivateNodeHandle().getParam("library", plugin_name_);
   loadLibrary(plugin_name_);
 
-  unsigned int wd = 8;
-  unsigned int ht = 8;
-  setSize(wd, ht);
+  new_width_ = 128;
+  new_height_ = 128;
+  setSize(new_width_, new_height_);
 
   ddr_ = std::make_unique<ddynamic_reconfigure::DDynamicReconfigure>(getPrivateNodeHandle());
   ddr_->registerVariable<int>("width", 8,
       boost::bind(&Frei0rImage::widthCallback, this, _1), "width", 8, 2048);
   ddr_->registerVariable<int>("height", 8,
-      boost::bind(&Frei0rImage::heightCallback, this, _1), "height", 8, 1024);
+      boost::bind(&Frei0rImage::heightCallback, this, _1), "height", 8, 2048);
 
   for (int i = 0; i < fi_.num_params; ++i) {
     // TODO(lucasw) create a control for each parameter
@@ -54,21 +68,19 @@ void Frei0rImage::onInit()
     get_param_info(&info, i);
     // ss << "  " << i << " '" << info.name << "' " << param_types[info.type]
     //     << " '" << info.explanation << "'\n";
+    const std::string param_name = sanitize(info.name);
     switch (info.type) {
       case (F0R_PARAM_BOOL): {
+        ddr_->registerVariable<bool>(param_name, true,
+            boost::bind(&Frei0rImage::boolCallback, this, _1, i),
+        // ddr_->registerVariable<double>(param_name, true,
+        //     boost::bind(&Frei0rImage::doubleCallback, this, _1, i),
+            info.explanation);
       }
       case (F0R_PARAM_DOUBLE): {
-        std::string param_name = info.name;
-        // spaces aren't allowed
-        for (char& c : param_name) {
-          if (c == ' ') {
-            c = '_';
-          }
-        }
         // starting with numbers isn't allowed, so prefix everything
-        param_name = "p_" + param_name;
         ROS_INFO_STREAM("'" << param_name << "'");
-        ddr_->registerVariable<double>(param_name, 0.0,  // param_name, 0.0,
+        ddr_->registerVariable<double>(param_name, 0.5,
             boost::bind(&Frei0rImage::doubleCallback, this, _1, i),
             info.explanation, 0.0, 1.0);
       }
@@ -107,6 +119,13 @@ bool Frei0rImage::loadLibrary(const std::string& name)
   update1 = (f0r_update_t)dlsym(handle_, "f0r_update");
   update2 = (f0r_update2_t)dlsym(handle_, "f0r_update2");
 
+  if (init == 0 || deinit == 0 || get_plugin_info == 0 ||
+    get_param_info == 0 || construct == 0 || destruct == 0 ||
+    set_param_value == 0 || get_param_value == 0 ||
+    (update1 == 0 && update2 == 0)) {
+    throw std::runtime_error("some symbols are missing in frei0r plugin");
+  }
+
   get_plugin_info(&fi_);
   print();
 
@@ -125,23 +144,22 @@ Frei0rImage::~Frei0rImage()
 
 void Frei0rImage::widthCallback(int width)
 {
-  unsigned int width_adjusted = (width / 8) * 8;
-  setSize(width_adjusted, height_);
+  new_width_ = (width / 8) * 8;
 }
 
 void Frei0rImage::heightCallback(int height)
 {
-  unsigned int height_adjusted = (height / 8) * 8;
-  setSize(width_, height_adjusted);
+  new_height_ = (height / 8) * 8;
+}
+
+void Frei0rImage::boolCallback(bool value, int param_ind)
+{
+  update_bools_[param_ind] = value;
 }
 
 void Frei0rImage::doubleCallback(double value, int param_ind)
 {
-  if (!instance_) {
-    return;
-  }
-  ROS_INFO_STREAM(param_ind << " " << value);
-  set_param_value(instance_, reinterpret_cast<void*>(&value), param_ind);
+  update_doubles_[param_ind] = value;
 }
 
 void Frei0rImage::print()
@@ -173,7 +191,7 @@ void Frei0rImage::print()
 
 bool Frei0rImage::setSize(unsigned int& width, unsigned int& height)
 {
-  ROS_INFO_STREAM_THROTTLE(30, width << " x " << height);
+  // ROS_INFO_STREAM_THROTTLE(30, width << " x " << height);
   width = (width / 8) * 8;
   if (width == 0) {
     return false;
@@ -183,17 +201,60 @@ bool Frei0rImage::setSize(unsigned int& width, unsigned int& height)
     return false;
   }
   if ((width != width_) || (height != height_)) {
+    getValues();
     width_ = width;
     height_ = height;
     if (instance_) {
       destruct(instance_);
     }
     instance_ = construct(width, height);
+    msg_.data.resize(width_ * height_ * 4);
+    msg_.encoding = "rgba8";
+    msg_.width = width_;
+    msg_.height = height_;
+    msg_.step = width_ * 4;
+    if (fi_.plugin_type == F0R_PLUGIN_TYPE_SOURCE) {
+      return true;
+    }
     const size_t num = width * height;  // * 4;
     in_frame_.resize(num);
     // out_frame_.resize(num);
   }
   return true;
+}
+
+void Frei0rImage::getValues()
+{
+  if (!instance_) {
+    return;
+  }
+  for (int i = 0; i < fi_.num_params; ++i) {
+    // TODO(lucasw) create a control for each parameter
+    f0r_param_info_t info;
+    get_param_info(&info, i);
+    // ss << "  " << i << " '" << info.name << "' " << param_types[info.type]
+    //     << " '" << info.explanation << "'\n";
+    switch (info.type) {
+      case (F0R_PARAM_BOOL): {
+        double value;
+        get_param_value(instance_, reinterpret_cast<void*>(&value), i);
+        update_bools_[i] = value > 0.5;
+      }
+      case (F0R_PARAM_DOUBLE): {
+        double value;
+        get_param_value(instance_, reinterpret_cast<void*>(&value), i);
+        update_doubles_[i] = value;
+        // ROS_INFO_STREAM("'" << info.name << "': " << value);
+      }
+      case (F0R_PARAM_COLOR): {
+      }
+      case (F0R_PARAM_POSITION): {
+      }
+      case (F0R_PARAM_STRING): {
+      }
+    }
+  }
+
 }
 
 void Frei0rImage::update(const ros::TimerEvent& event)
@@ -205,25 +266,35 @@ void Frei0rImage::update(const ros::TimerEvent& event)
     ROS_ERROR_STREAM("can't update without instance");
     return;
   }
+
+  setSize(new_width_, new_height_);
+
+  for (auto& pair : update_bools_) {
+    double value = pair.second ? 1.0 : 0.0;
+    set_param_value(instance_, reinterpret_cast<f0r_param_t>(&value),
+        pair.first);
+  }
+  update_bools_.clear();
+
+  for (auto& pair : update_doubles_) {
+    set_param_value(instance_, reinterpret_cast<f0r_param_t>(&pair.second),
+        pair.first);
+  }
+  update_doubles_.clear();
+
   const double time_val = event.current_real.toSec();
 
-  sensor_msgs::Image msg;
-  msg.header.stamp = event.current_real;
-  msg.encoding = "bgra8";
-  msg.data.resize(width_ * height_ * 4);
-  msg.width = width_;
-  msg.height = height_;
-  msg.step = width_ * 4;
+  msg_.header.stamp = event.current_real;
 
-  if ((fi_.plugin_type != F0R_PLUGIN_TYPE_MIXER2) &&
-      (fi_.plugin_type != F0R_PLUGIN_TYPE_MIXER3)) {
+//  if ((fi_.plugin_type != F0R_PLUGIN_TYPE_MIXER2) &&
+//      (fi_.plugin_type != F0R_PLUGIN_TYPE_MIXER3)) {
+  if (fi_.plugin_type == F0R_PLUGIN_TYPE_SOURCE) {
     update1(instance_, time_val,
-        &in_frame_[0],
-        reinterpret_cast<uint32_t*>(&msg.data[0]));
-        // &out_frame_[0]);
+        nullptr,
+        reinterpret_cast<uint32_t*>(&msg_.data[0]));
   }
 
-  pub_.publish(msg);
+  pub_.publish(msg_);
 }
 
 }  // namespace frei0r_image

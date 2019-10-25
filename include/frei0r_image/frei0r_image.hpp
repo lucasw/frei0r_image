@@ -56,6 +56,7 @@ public:
   ~Frei0rImage();
   void widthCallback(int width);
   void heightCallback(int height);
+  void boolCallback(bool value, int param_ind);
   void doubleCallback(double value, int param_ind);
   const std::array<std::string, 4> plugin_types = {
       "filter", "source", "mixer2", "mixer3"};
@@ -81,8 +82,14 @@ private:
   ros::Timer timer_;
   std::unique_ptr<ddynamic_reconfigure::DDynamicReconfigure> ddr_;
 
+  std::map<int, bool> update_bools_;
+  std::map<int, double> update_doubles_;
+  void getValues();
+
   unsigned int width_ = 0;
   unsigned int height_ = 0;
+  unsigned int new_width_ = 0;
+  unsigned int new_height_ = 0;
 
   f0r_init_t init;
   f0r_deinit_t deinit;
@@ -91,7 +98,8 @@ private:
 
   // TODO(lucasw) could be cv::Mat
   std::vector<uint32_t> in_frame_;
-  std::vector<uint32_t> out_frame_;
+  // TODO(lucasw) needs to be ptr
+  sensor_msgs::Image msg_;
 
   void* handle_ = nullptr;
   // TODO(lucasw) the instance and the plugin should be separate in general,
