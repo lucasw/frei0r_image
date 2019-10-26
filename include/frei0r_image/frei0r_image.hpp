@@ -63,7 +63,9 @@ public:
   const std::array<std::string, 5> param_types = {
       "bool", "double", "color", "position", "string"};
 
+  void selectPlugin(std::string plugin_name);
   bool loadLibrary(const std::string& name);
+  void closeLibrary();
   void print();
   bool setSize(unsigned int& width, unsigned int& height);
 
@@ -78,9 +80,14 @@ public:
   f0r_update2_t update2;
 private:
   std::string plugin_name_;
+  std::string new_plugin_name_;
   ros::Publisher pub_;
   ros::Timer timer_;
   std::unique_ptr<ddynamic_reconfigure::DDynamicReconfigure> ddr_;
+  std::unique_ptr<ddynamic_reconfigure::DDynamicReconfigure> select_plugin_ddr_;
+
+  void setupPlugin();
+  // std::map<int, std::map<std::string, std::shared_ptr<Frei0rImage>>> plugins_;
 
   std::map<int, bool> update_bools_;
   std::map<int, double> update_doubles_;

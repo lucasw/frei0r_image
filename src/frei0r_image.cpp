@@ -46,12 +46,81 @@ void Frei0rImage::onInit()
 {
   pub_ = getNodeHandle().advertise<sensor_msgs::Image>("image", 3);
 
+  std::vector<std::string> plugin_dirs = {
+    "/usr/lib/frei0r-1/",  // ubuntu frei0r-plugins puts them here
+    "/usr/local/lib/frei0r-1/",
+    "/.frei0r-1/lib"  // TODO(lucasw) need to prefix $HOME to this
+  };
   std::string path = "/usr/lib/frei0r-1/";
   // std::string name = "/usr/lib/frei0r-1/nois0r.so";
-  plugin_name_ = path + "plasma.so";
-  getPrivateNodeHandle().getParam("library", plugin_name_);
-  loadLibrary(plugin_name_);
 
+  select_plugin_ddr_ = std::make_unique<ddynamic_reconfigure::DDynamicReconfigure>(getNodeHandle());
+
+  std::map<std::string, std::string> enum_map;
+  enum_map["none"] = "none";
+
+  // std::vector<std::string> plugin_names;
+  for (const auto& dir : plugin_dirs) {
+    if (!std::experimental::filesystem::exists(dir)) {
+      continue;
+    }
+    try {
+      for (const auto& entry : std::experimental::filesystem::directory_iterator(dir)) {
+        enum_map[entry.path()] = entry.path();
+        // plugin_names.push_back(entry.path());
+        // ROS_INFO_STREAM(entry.path());
+      }
+    } catch (std::experimental::filesystem::v1::__cxx11::filesystem_error& ex) {
+      std::cout << dir << " " << ex.what() << "\n";
+    }
+  }
+  select_plugin_ddr_->registerEnumVariable<std::string>("frei0r", "none",
+      boost::bind(&Frei0rImage::selectPlugin, this, _1), "frei0r", enum_map);
+
+#if 0
+  std::map<std::string, bool> bad_frei0rs;
+  bad_frei0rs["/usr/lib/frei0r-1/curves.so"] = true;
+
+  for (const auto& plugin_name : plugin_names) {
+    if (bad_frei0rs.count(plugin_name) > 0) {
+      std::cout << "skipping " << plugin_name << "\n";
+      continue;
+    }
+    auto plugin = std::make_shared<frei0r_image::Frei0rImage>();
+    plugin->loadLibrary(plugin_name);
+    const int plugin_type = plugin->fi_.plugin_type;
+    plugins[plugin_type][plugin_name] = plugin;
+    std::cout << plugin_type << " " << plugin_name << "\n";
+  }
+
+  for (const auto& plugin_pair : plugins[1]) {
+    plugin_pair.second->print();
+  }
+#endif
+
+  select_plugin_ddr_->publishServicesTopics();
+
+  timer_ = getPrivateNodeHandle().createTimer(ros::Duration(0.1),
+      &Frei0rImage::update, this);
+}
+
+void Frei0rImage::selectPlugin(std::string plugin_name)
+{
+  new_plugin_name_ = plugin_name;
+}
+
+void Frei0rImage::setupPlugin()
+{
+  ROS_INFO_STREAM(plugin_name_ << " -> " << new_plugin_name_);
+  if (new_plugin_name_ == "none") {
+    closeLibrary();
+    plugin_name_ = new_plugin_name_;
+    return;
+  }
+  loadLibrary(new_plugin_name_);
+
+  width_ = 0;
+  height_ = 0;
   new_width_ = 128;
   new_height_ = 128;
   setSize(new_width_, new_height_);
@@ -94,13 +163,13 @@ void Frei0rImage::onInit()
   }
 
   ddr_->publishServicesTopics();
-
-  timer_ = getPrivateNodeHandle().createTimer(ros::Duration(0.1),
-      &Frei0rImage::update, this);
 }
 
+// TODO(lucasw) move into inner plugin class
 bool Frei0rImage::loadLibrary(const std::string& name)
 {
+  closeLibrary();
+  ROS_INFO_STREAM("loading " << name);
   plugin_name_ = name;
   handle_ = dlopen(name.c_str(), RTLD_NOW);
   if (!handle_) {
@@ -123,23 +192,34 @@ bool Frei0rImage::loadLibrary(const std::string& name)
     get_param_info == 0 || construct == 0 || destruct == 0 ||
     set_param_value == 0 || get_param_value == 0 ||
     (update1 == 0 && update2 == 0)) {
-    throw std::runtime_error("some symbols are missing in frei0r plugin");
+    // throw std::runtime_error("some symbols are missing in frei0r plugin");
+    ROS_ERROR_STREAM("some symbols are missing in frei0r plugin");
+    return false;
   }
 
+  ROS_INFO_STREAM("get info");
   get_plugin_info(&fi_);
   print();
 
   return true;
 }
 
-Frei0rImage::~Frei0rImage()
+void Frei0rImage::closeLibrary()
 {
+  ROS_INFO_STREAM("closing");
   if (instance_) {
+    ROS_INFO_STREAM("destructing instance");
     destruct(instance_);
   }
   if (handle_) {
+    ROS_INFO_STREAM("closing dl handle");
     dlclose(handle_);
   }
+}
+
+Frei0rImage::~Frei0rImage()
+{
+  closeLibrary();
 }
 
 void Frei0rImage::widthCallback(int width)
@@ -252,13 +332,15 @@ void Frei0rImage::getValues()
       }
       case (F0R_PARAM_STRING): {
       }
-    }
-  }
-
+    }  // switch on param type
+  }  // loop through params
 }
 
 void Frei0rImage::update(const ros::TimerEvent& event)
 {
+  if (new_plugin_name_ != plugin_name_) {
+    setupPlugin();
+  }
   if (!handle_) {
     return;
   }
