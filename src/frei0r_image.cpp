@@ -111,30 +111,25 @@ void Frei0rImage::selectPlugin(std::string plugin_name)
 
 void Frei0rImage::setupPlugin()
 {
-  ROS_INFO_STREAM(plugin_name_ << " -> " << new_plugin_name_);
-  if (new_plugin_name_ == "none") {
-    closeLibrary();
-    plugin_name_ = new_plugin_name_;
+  ROS_INFO_STREAM(new_plugin_name_);
+  if (!plugin_) {
+    ROS_ERROR_STREAM("no plugin");
     return;
   }
-  loadLibrary(new_plugin_name_);
-
-  width_ = 0;
-  height_ = 0;
-  new_width_ = 128;
-  new_height_ = 128;
-  setSize(new_width_, new_height_);
-
+  if (!plugin_->instance_) {
+    ROS_ERROR_STREAM("no instance");
+    return;
+  }
   ddr_ = std::make_unique<ddynamic_reconfigure::DDynamicReconfigure>(getPrivateNodeHandle());
   ddr_->registerVariable<int>("width", 8,
       boost::bind(&Frei0rImage::widthCallback, this, _1), "width", 8, 2048);
   ddr_->registerVariable<int>("height", 8,
       boost::bind(&Frei0rImage::heightCallback, this, _1), "height", 8, 2048);
 
-  for (int i = 0; i < fi_.num_params; ++i) {
+  for (int i = 0; i < plugin_->fi_.num_params; ++i) {
     // TODO(lucasw) create a control for each parameter
     f0r_param_info_t info;
-    get_param_info(&info, i);
+    plugin_->instance_->get_param_info(&info, i);
     // ss << "  " << i << " '" << info.name << "' " << param_types[info.type]
     //     << " '" << info.explanation << "'\n";
     const std::string param_name = sanitize(info.name);
@@ -165,15 +160,17 @@ void Frei0rImage::setupPlugin()
   ddr_->publishServicesTopics();
 }
 
-// TODO(lucasw) move into inner plugin class
-bool Frei0rImage::loadLibrary(const std::string& name)
+Plugin::Plugin(const std::string& name)
 {
-  closeLibrary();
+  if (name == "none") {
+    return;
+  }
   ROS_INFO_STREAM("loading " << name);
   plugin_name_ = name;
   handle_ = dlopen(name.c_str(), RTLD_NOW);
   if (!handle_) {
-    return false;
+    // TODO(lucasw) throw
+    return;
   }
   // std::cout << name << " " << handle_ << "\n";
 
@@ -194,32 +191,20 @@ bool Frei0rImage::loadLibrary(const std::string& name)
     (update1 == 0 && update2 == 0)) {
     // throw std::runtime_error("some symbols are missing in frei0r plugin");
     ROS_ERROR_STREAM("some symbols are missing in frei0r plugin");
-    return false;
+    // TODO(lucasw) throw
+    return;
   }
+
+  init();
 
   ROS_INFO_STREAM("get info");
   get_plugin_info(&fi_);
   print();
-
-  return true;
 }
 
-void Frei0rImage::closeLibrary()
+Plugin::~Plugin()
 {
-  ROS_INFO_STREAM("closing");
-  if (instance_) {
-    ROS_INFO_STREAM("destructing instance");
-    destruct(instance_);
-  }
-  if (handle_) {
-    ROS_INFO_STREAM("closing dl handle");
-    dlclose(handle_);
-  }
-}
-
-Frei0rImage::~Frei0rImage()
-{
-  closeLibrary();
+  deinit();
 }
 
 void Frei0rImage::widthCallback(int width)
@@ -234,15 +219,27 @@ void Frei0rImage::heightCallback(int height)
 
 void Frei0rImage::boolCallback(bool value, int param_ind)
 {
-  update_bools_[param_ind] = value;
+  if (!plugin_) {
+    return;
+  }
+  if (!plugin_->instance_) {
+    return;
+  }
+  plugin_->instance_->update_bools_[param_ind] = value;
 }
 
 void Frei0rImage::doubleCallback(double value, int param_ind)
 {
-  update_doubles_[param_ind] = value;
+  if (!plugin_) {
+    return;
+  }
+  if (!plugin_->instance_) {
+    return;
+  }
+  plugin_->instance_->update_doubles_[param_ind] = value;
 }
 
-void Frei0rImage::print()
+void Plugin::print()
 {
   std::stringstream ss;
   ss << "'" << plugin_name_ << "' {\n";
@@ -269,24 +266,38 @@ void Frei0rImage::print()
   ROS_INFO_STREAM(ss.str());
 }
 
-bool Frei0rImage::setSize(unsigned int& width, unsigned int& height)
+Instance::Instance(unsigned int& width, unsigned int& height,
+  f0r_construct_t construct,
+  f0r_destruct_t destruct,
+  f0r_update_t update1,
+  f0r_update2_t update2,
+  f0r_plugin_info fi,
+  f0r_get_param_info_t get_param_info,
+  f0r_get_param_value_t get_param_value,
+  f0r_set_param_value_t set_param_value) :
+  construct(construct),
+  destruct(destruct),
+  fi_(fi),
+  update1(update1),
+  update2(update2),
+  get_param_info(get_param_info),
+  get_param_value(get_param_value),
+  set_param_value(set_param_value)
 {
   // ROS_INFO_STREAM_THROTTLE(30, width << " x " << height);
   width = (width / 8) * 8;
   if (width == 0) {
-    return false;
+    width = 8;
   }
   height = (height / 8) * 8;
   if (height == 0) {
-    return false;
+    height = 8;
   }
-  if ((width != width_) || (height != height_)) {
+
+  {
     getValues();
     width_ = width;
     height_ = height;
-    if (instance_) {
-      destruct(instance_);
-    }
     instance_ = construct(width, height);
     msg_.data.resize(width_ * height_ * 4);
     msg_.encoding = "rgba8";
@@ -294,16 +305,20 @@ bool Frei0rImage::setSize(unsigned int& width, unsigned int& height)
     msg_.height = height_;
     msg_.step = width_ * 4;
     if (fi_.plugin_type == F0R_PLUGIN_TYPE_SOURCE) {
-      return true;
+      return;
     }
     const size_t num = width * height;  // * 4;
     in_frame_.resize(num);
     // out_frame_.resize(num);
   }
-  return true;
 }
 
-void Frei0rImage::getValues()
+Instance::~Instance()
+{
+  destruct(instance_);
+}
+
+void Instance::getValues()
 {
   if (!instance_) {
     return;
@@ -338,45 +353,68 @@ void Frei0rImage::getValues()
 
 void Frei0rImage::update(const ros::TimerEvent& event)
 {
-  if (new_plugin_name_ != plugin_name_) {
+  if (new_plugin_name_ == "none") {
+    return;
+  }
+  if ((!plugin_) || (new_plugin_name_ != plugin_->plugin_name_)) {
+    plugin_ = std::make_unique<Plugin>(new_plugin_name_);
+    plugin_->makeInstance(new_width_, new_height_);
     setupPlugin();
   }
-  if (!handle_) {
+  if (!plugin_) {
     return;
   }
-  if (!instance_) {
-    ROS_ERROR_STREAM("can't update without instance");
-    return;
+  if ((!plugin_->instance_) ||
+      (new_width_ != plugin_->instance_->width_) ||
+      (new_height_ != plugin_->instance_->height_)) {
+    // TODO(lucasw) currently this will reset all parameter values,
+    // need to copy them out to update_ maps.
+    plugin_->makeInstance(new_width_, new_height_);
   }
 
-  setSize(new_width_, new_height_);
+  plugin_->instance_->updateParams();
 
+  plugin_->instance_->update(event.current_real);
+
+  pub_.publish(plugin_->instance_->msg_);
+}
+
+void Instance::updateParams()
+{
   for (auto& pair : update_bools_) {
-    double value = pair.second ? 1.0 : 0.0;
-    set_param_value(instance_, reinterpret_cast<f0r_param_t>(&value),
-        pair.first);
+    setParamValue(pair.second, pair.first);
   }
   update_bools_.clear();
 
   for (auto& pair : update_doubles_) {
-    set_param_value(instance_, reinterpret_cast<f0r_param_t>(&pair.second),
-        pair.first);
+    setParamValue(pair.second, pair.first);
   }
   update_doubles_.clear();
+}
 
-  const double time_val = event.current_real.toSec();
+#if 0
+Plugin::update(const ros::Time stamp)
+{
+  if (!instance_) {
+    return;
+  }
+  instance_->update(stamp)
+}
+#endif
 
-  msg_.header.stamp = event.current_real;
+void Instance::update(const ros::Time stamp)
+{
+  msg_.header.stamp = stamp;
 
-//  if ((fi_.plugin_type != F0R_PLUGIN_TYPE_MIXER2) &&
-//      (fi_.plugin_type != F0R_PLUGIN_TYPE_MIXER3)) {
+  const double time_val = stamp.toSec();
+
+  // if ((fi_.plugin_type != F0R_PLUGIN_TYPE_MIXER2) &&
+  //     (fi_.plugin_type != F0R_PLUGIN_TYPE_MIXER3)) {
   if (fi_.plugin_type == F0R_PLUGIN_TYPE_SOURCE) {
     update1(instance_, time_val,
         nullptr,
         reinterpret_cast<uint32_t*>(&msg_.data[0]));
   }
-
-  pub_.publish(msg_);
 }
 
 }  // namespace frei0r_image

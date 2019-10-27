@@ -59,15 +59,20 @@ int main(int argc, char** argv)
       continue;
     }
     auto plugin = std::make_shared<frei0r_image::Frei0rImage>();
+    // Temp disable TODO(lucasw) fix this
+#if 0
     plugin->loadLibrary(plugin_name);
     const int plugin_type = plugin->fi_.plugin_type;
     plugins[plugin_type][plugin_name] = plugin;
     std::cout << plugin_type << " " << plugin_name << "\n";
+#endif
   }
 
+#if 0
   for (const auto& plugin_pair : plugins[1]) {
     plugin_pair.second->print();
   }
+#endif
 
   std::cout << std::endl;
   return 0;
