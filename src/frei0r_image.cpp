@@ -78,7 +78,8 @@ void Frei0rImage::onInit()
         if (!rv) {
           continue;
         }
-        if (plugin_type != F0R_PLUGIN_TYPE_SOURCE) {
+        // if (plugin_type != F0R_PLUGIN_TYPE_SOURCE) {
+        if (plugin_type != F0R_PLUGIN_TYPE_FILTER) {
           continue;
         }
         ROS_INFO_STREAM(plugin_type << " " << name);
@@ -117,6 +118,19 @@ void Frei0rImage::onInit()
 
   timer_ = getPrivateNodeHandle().createTimer(ros::Duration(0.1),
       &Frei0rImage::update, this);
+
+  sub_ = getNodeHandle().subscribe("image_in", 1, &Frei0rImage::imageCallback, this);
+}
+
+void Frei0rImage::imageCallback(const sensor_msgs::ImagePtr& msg)
+{
+  if ((!plugin_) || (!plugin_->instance_)) {
+    return;
+  }
+  // TODO(lucasw) need to adjustWidth on these, and then resize the data
+  new_width_ = msg->width;
+  new_height_ = msg->height;
+  plugin_->instance_->image_in_msg_ = msg;
 }
 
 void Frei0rImage::selectPlugin(std::string plugin_name)
@@ -263,12 +277,12 @@ Plugin::~Plugin()
 
 void Frei0rImage::widthCallback(int width)
 {
-  new_width_ = (width / 8) * 8;
+  new_width_ = width;
 }
 
 void Frei0rImage::heightCallback(int height)
 {
-  new_height_ = (height / 8) * 8;
+  new_height_ = height;
 }
 
 void Frei0rImage::boolCallback(bool value, int param_ind)
@@ -332,7 +346,7 @@ void Plugin::print()
 
 void adjustWidthHeight(unsigned int& width, unsigned int& height)
 {
-  const unsigned align = 16;
+  const unsigned align = 8;
   width = (width / align) * align;
   if (width == 0) {
     width = align;
@@ -513,10 +527,23 @@ void Instance::update(const ros::Time stamp)
 
   // if ((fi_.plugin_type != F0R_PLUGIN_TYPE_MIXER2) &&
   //     (fi_.plugin_type != F0R_PLUGIN_TYPE_MIXER3)) {
-  if (fi_.plugin_type == F0R_PLUGIN_TYPE_SOURCE) {
-    update1(instance_, time_val,
-        nullptr,
-        reinterpret_cast<uint32_t*>(&msg_.data[0]));
+  switch (fi_.plugin_type) {
+    case (F0R_PLUGIN_TYPE_FILTER): {
+      if (image_in_msg_) {
+        // TODO(lucasw) image_in_msg width and height may not be
+        // multiples of 8
+        update1(instance_, time_val,
+            reinterpret_cast<uint32_t*>(&image_in_msg_->data[0]),
+            reinterpret_cast<uint32_t*>(&msg_.data[0]));
+      }
+      break;
+    }
+    case  (F0R_PLUGIN_TYPE_SOURCE): {
+      update1(instance_, time_val,
+          nullptr,
+          reinterpret_cast<uint32_t*>(&msg_.data[0]));
+      break;
+    }
   }
 }
 

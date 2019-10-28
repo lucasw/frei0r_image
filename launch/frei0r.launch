@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
 <launch>
 
+  <node pkg="image_publisher" type="image_publisher"
+    name="image_pub"
+    args="$(find vimjay)/data/clouds.png" >
+    <param name="publish_rate" value="5.0"/>
+  </node>
+
   <group ns="frei0r">
     <!--
     <node name="nodelet_manager" pkg="nodelet" type="nodelet"
@@ -18,6 +24,7 @@
     <node name="frei0r" pkg="frei0r_image" type="frei0r_image_node"
       output="screen" >
       <param name="path" value="$(env HOME)/other/install/lib/frei0r-1" />
+      <remap from="image_in" to="/image_pub/image_raw" />
     </node>
 
     <!-- TODO(lucasw) launch rqt -->

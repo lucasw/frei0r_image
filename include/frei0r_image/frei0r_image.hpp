@@ -115,6 +115,7 @@ struct Instance
   std::vector<uint32_t> in_frame_;
   // TODO(lucasw) needs to be ptr
   sensor_msgs::Image msg_;
+  sensor_msgs::ImagePtr image_in_msg_;
 
   unsigned int width_ = 0;
   unsigned int height_ = 0;
@@ -174,9 +175,12 @@ public:
   void selectPlugin(std::string plugin_name);
 
   void update(const ros::TimerEvent& event);
+
+  void imageCallback(const sensor_msgs::ImagePtr& msg);
 private:
   std::string new_plugin_name_ = "none";
   ros::Publisher pub_;
+  ros::Subscriber sub_;
   ros::Timer timer_;
   std::unique_ptr<ddynamic_reconfigure::DDynamicReconfigure> ddr_;
   std::unique_ptr<ddynamic_reconfigure::DDynamicReconfigure> select_plugin_ddr_;
