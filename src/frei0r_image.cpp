@@ -83,7 +83,7 @@ void Frei0rImage::onInit()
           continue;
         }
         ROS_INFO_STREAM(plugin_type << " " << name);
-        //const std::string name = info.name;
+        // const std::string name = info.name;
         enum_map[name] = path;
       }
     } catch (std::experimental::filesystem::v1::__cxx11::filesystem_error& ex) {
