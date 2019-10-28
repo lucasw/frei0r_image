@@ -79,6 +79,22 @@ struct Instance
     set_param_value(instance_, reinterpret_cast<f0r_param_t>(&value), ind);
   }
 
+  void setPositionX(const double x, const int ind)
+  {
+    f0r_param_position_t pos;
+    get_param_value(instance_, reinterpret_cast<f0r_param_t>(&pos), ind);
+    pos.x = x;
+    set_param_value(instance_, reinterpret_cast<f0r_param_t>(&pos), ind);
+  }
+
+  void setPositionY(const double y, const int ind)
+  {
+    f0r_param_position_t pos;
+    get_param_value(instance_, reinterpret_cast<f0r_param_t>(&pos), ind);
+    pos.y = y;
+    set_param_value(instance_, reinterpret_cast<f0r_param_t>(&pos), ind);
+  }
+
   f0r_construct_t construct = nullptr;
   f0r_destruct_t destruct = nullptr;
   f0r_update_t update1 = nullptr;
@@ -89,6 +105,8 @@ struct Instance
 
   std::map<int, bool> update_bools_;
   std::map<int, double> update_doubles_;
+  std::map<int, double> update_position_x_;
+  std::map<int, double> update_position_y_;
   void getValues();
   f0r_plugin_info fi_;
 
@@ -148,6 +166,8 @@ public:
   void heightCallback(int height);
   void boolCallback(bool value, int param_ind);
   void doubleCallback(double value, int param_ind);
+  void colorXCallback(double value, int param_ind);
+  void colorYCallback(double value, int param_ind);
 
   void selectPlugin(std::string plugin_name);
 

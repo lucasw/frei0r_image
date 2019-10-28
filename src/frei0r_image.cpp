@@ -157,6 +157,7 @@ void Frei0rImage::setupPlugin()
         // ddr_->registerVariable<double>(param_name, true,
         //     boost::bind(&Frei0rImage::doubleCallback, this, _1, i),
             info.explanation);
+        break;
       }
       case (F0R_PARAM_DOUBLE): {
         // starting with numbers isn't allowed, so prefix everything
@@ -164,15 +165,25 @@ void Frei0rImage::setupPlugin()
         ddr_->registerVariable<double>(param_name, 0.5,
             boost::bind(&Frei0rImage::doubleCallback, this, _1, i),
             info.explanation, 0.0, 1.0);
+        break;
       }
       case (F0R_PARAM_COLOR): {
         ROS_INFO_STREAM(i << " color '" << param_name << "'");
+        break;
       }
       case (F0R_PARAM_POSITION): {
         ROS_INFO_STREAM(i << " position '" << param_name << "'");
+        ddr_->registerVariable<double>(param_name + "_x", 0.5,
+            boost::bind(&Frei0rImage::colorXCallback, this, _1, i),
+            info.explanation, 0.0, 1.0);
+        ddr_->registerVariable<double>(param_name + "_y", 0.5,
+            boost::bind(&Frei0rImage::colorYCallback, this, _1, i),
+            info.explanation, 0.0, 1.0);
+        break;
       }
       case (F0R_PARAM_STRING): {
         ROS_INFO_STREAM(i << " string '" << param_name << "'");
+        break;
       }
     }
   }
@@ -262,10 +273,7 @@ void Frei0rImage::heightCallback(int height)
 
 void Frei0rImage::boolCallback(bool value, int param_ind)
 {
-  if (!plugin_) {
-    return;
-  }
-  if (!plugin_->instance_) {
+  if ((!plugin_) || (!plugin_->instance_)) {
     return;
   }
   plugin_->instance_->update_bools_[param_ind] = value;
@@ -273,13 +281,26 @@ void Frei0rImage::boolCallback(bool value, int param_ind)
 
 void Frei0rImage::doubleCallback(double value, int param_ind)
 {
-  if (!plugin_) {
-    return;
-  }
-  if (!plugin_->instance_) {
+  if ((!plugin_) || (!plugin_->instance_)) {
     return;
   }
   plugin_->instance_->update_doubles_[param_ind] = value;
+}
+
+void Frei0rImage::colorXCallback(double value, int param_ind)
+{
+  if ((!plugin_) || (!plugin_->instance_)) {
+    return;
+  }
+  plugin_->instance_->update_position_x_[param_ind] = value;
+}
+
+void Frei0rImage::colorYCallback(double value, int param_ind)
+{
+  if ((!plugin_) || (!plugin_->instance_)) {
+    return;
+  }
+  plugin_->instance_->update_position_y_[param_ind] = value;
 }
 
 void Plugin::print()
@@ -377,14 +398,18 @@ void Instance::getValues()
         double value;
         get_param_value(instance_, reinterpret_cast<void*>(&value), i);
         update_bools_[i] = value > 0.5;
+        ROS_INFO_STREAM("bool '" << info.name << "': " << value);
       }
       case (F0R_PARAM_DOUBLE): {
         double value;
         get_param_value(instance_, reinterpret_cast<void*>(&value), i);
         update_doubles_[i] = value;
-        // ROS_INFO_STREAM("'" << info.name << "': " << value);
+        ROS_INFO_STREAM("double '" << info.name << "': " << value);
       }
       case (F0R_PARAM_COLOR): {
+        f0r_param_position_t pos;
+        get_param_value(instance_, reinterpret_cast<f0r_param_t>(&pos), i);
+        ROS_INFO_STREAM("position '" << info.name << "': " << pos.x << " " << pos.y);
       }
       case (F0R_PARAM_POSITION): {
       }
@@ -442,6 +467,16 @@ void Instance::updateParams()
     setParamValue(pair.second, pair.first);
   }
   update_doubles_.clear();
+
+  for (auto& pair : update_position_x_) {
+    setPositionX(pair.second, pair.first);
+  }
+  update_position_x_.clear();
+
+  for (auto& pair : update_position_y_) {
+    setPositionY(pair.second, pair.first);
+  }
+  update_position_y_.clear();
 }
 
 #if 0
