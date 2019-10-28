@@ -155,6 +155,8 @@ struct Plugin
       "filter", "source", "mixer2", "mixer3"};
   const std::array<std::string, 5> param_types = {
       "bool", "double", "color", "position", "string"};
+  const std::array<std::string, 3> color_models = {
+      "bgra", "rgba", "packed32"};
 };
 
 class Frei0rImage : public nodelet::Nodelet

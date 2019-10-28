@@ -309,7 +309,7 @@ void Plugin::print()
   ss << "'" << plugin_name_ << "' {\n";
   ss << fi_.name << " by " << fi_.author << "\n";
   ss << "type: " << fi_.plugin_type << " " << plugin_types[fi_.plugin_type] << "\n";
-  ss << "color model: " << fi_.color_model << "\n";
+  ss << "color model: " << fi_.color_model << " " << color_models[fi_.color_model] << "\n";
   ss << "frei0r_version: " << fi_.frei0r_version << "\n";
   ss << "major_version: " << fi_.major_version << "\n";
   ss << "minor_version: " << fi_.minor_version << "\n";
@@ -330,6 +330,19 @@ void Plugin::print()
   ROS_INFO_STREAM(ss.str());
 }
 
+void adjustWidthHeight(unsigned int& width, unsigned int& height)
+{
+  const unsigned align = 16;
+  width = (width / align) * align;
+  if (width == 0) {
+    width = align;
+  }
+  height = (height / align) * align;
+  if (height == 0) {
+    height = align;
+  }
+}
+
 Instance::Instance(unsigned int& width, unsigned int& height,
   f0r_construct_t construct,
   f0r_destruct_t destruct,
@@ -348,23 +361,16 @@ Instance::Instance(unsigned int& width, unsigned int& height,
   get_param_value(get_param_value),
   set_param_value(set_param_value)
 {
-  // ROS_INFO_STREAM_THROTTLE(30, width << " x " << height);
-  width = (width / 8) * 8;
-  if (width == 0) {
-    width = 8;
-  }
-  height = (height / 8) * 8;
-  if (height == 0) {
-    height = 8;
-  }
+  adjustWidthHeight(width, height);
+  ROS_INFO_STREAM(width << " x " << height);
 
   {
-    getValues();
     width_ = width;
     height_ = height;
-    instance_ = construct(width, height);
+    instance_ = construct(width_, height_);
+    // getValues();
     msg_.data.resize(width_ * height_ * 4);
-    msg_.encoding = "rgba8";
+    msg_.encoding = "bgra8";
     msg_.width = width_;
     msg_.height = height_;
     msg_.step = width_ * 4;
@@ -399,21 +405,26 @@ void Instance::getValues()
         get_param_value(instance_, reinterpret_cast<void*>(&value), i);
         update_bools_[i] = value > 0.5;
         ROS_INFO_STREAM("bool '" << info.name << "': " << value);
+        break;
       }
       case (F0R_PARAM_DOUBLE): {
         double value;
         get_param_value(instance_, reinterpret_cast<void*>(&value), i);
         update_doubles_[i] = value;
         ROS_INFO_STREAM("double '" << info.name << "': " << value);
+        break;
       }
       case (F0R_PARAM_COLOR): {
+        break;
+      }
+      case (F0R_PARAM_POSITION): {
         f0r_param_position_t pos;
         get_param_value(instance_, reinterpret_cast<f0r_param_t>(&pos), i);
         ROS_INFO_STREAM("position '" << info.name << "': " << pos.x << " " << pos.y);
-      }
-      case (F0R_PARAM_POSITION): {
+        break;
       }
       case (F0R_PARAM_STRING): {
+        break;
       }
     }  // switch on param type
   }  // loop through params
@@ -421,6 +432,8 @@ void Instance::getValues()
 
 void Frei0rImage::update(const ros::TimerEvent& event)
 {
+  adjustWidthHeight(new_width_, new_height_);
+
   if (new_plugin_name_ == "none") {
     if (plugin_) {
       plugin_ = nullptr;
@@ -435,6 +448,9 @@ void Frei0rImage::update(const ros::TimerEvent& event)
     return;
   }
   if ((!plugin_) || (new_plugin_name_ != plugin_->plugin_name_)) {
+    if (plugin_) {
+      ROS_INFO_STREAM(new_plugin_name_ << " " << plugin_->plugin_name_);
+    }
     plugin_ = std::make_unique<Plugin>(new_plugin_name_);
     plugin_->makeInstance(new_width_, new_height_);
     setupPlugin();
