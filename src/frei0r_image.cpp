@@ -46,13 +46,15 @@ void Frei0rImage::onInit()
 {
   pub_ = getNodeHandle().advertise<sensor_msgs::Image>("image", 3);
 
+  // TODO(lucasw) one of the ddr variables could be a path name
   std::vector<std::string> plugin_dirs = {
-    "/usr/lib/frei0r-1/",  // ubuntu frei0r-plugins puts them here
-    "/usr/local/lib/frei0r-1/",
-    "/.frei0r-1/lib"  // TODO(lucasw) need to prefix $HOME to this
+    // "/usr/lib/frei0r-1/",  // ubuntu frei0r-plugins puts them here
+    // "/usr/local/lib/frei0r-1/",
+     //  "/.frei0r-1/lib"  // TODO(lucasw) need to prefix $HOME to this
   };
-  std::string path = "/usr/lib/frei0r-1/";
-  // std::string name = "/usr/lib/frei0r-1/nois0r.so";
+  std::string custom_path = "/usr/lib/frei0r-1/";
+  getPrivateNodeHandle().getParam("path", custom_path);
+  plugin_dirs.push_back(custom_path);
 
   select_plugin_ddr_ = std::make_unique<ddynamic_reconfigure::DDynamicReconfigure>(getNodeHandle());
 
@@ -66,9 +68,22 @@ void Frei0rImage::onInit()
     }
     try {
       for (const auto& entry : std::experimental::filesystem::directory_iterator(dir)) {
-        enum_map[entry.path()] = entry.path();
-        // plugin_names.push_back(entry.path());
-        // ROS_INFO_STREAM(entry.path());
+        // TODO(lucasw) get the name and type of the plugin
+        // and use it here.
+        const auto path = entry.path();
+        std::string name;
+        int plugin_type = 0;
+        // ROS_INFO_STREAM(path);
+        const bool rv = getPluginInfo(path, name, plugin_type);
+        if (!rv) {
+          continue;
+        }
+        if (plugin_type != F0R_PLUGIN_TYPE_SOURCE) {
+          continue;
+        }
+        ROS_INFO_STREAM(plugin_type << " " << name);
+        //const std::string name = info.name;
+        enum_map[name] = path;
       }
     } catch (std::experimental::filesystem::v1::__cxx11::filesystem_error& ex) {
       std::cout << dir << " " << ex.what() << "\n";
@@ -106,6 +121,7 @@ void Frei0rImage::onInit()
 
 void Frei0rImage::selectPlugin(std::string plugin_name)
 {
+  ROS_INFO_STREAM(plugin_name);
   new_plugin_name_ = plugin_name;
 }
 
@@ -135,6 +151,7 @@ void Frei0rImage::setupPlugin()
     const std::string param_name = sanitize(info.name);
     switch (info.type) {
       case (F0R_PARAM_BOOL): {
+        ROS_INFO_STREAM(i << " bool '" << param_name << "'");
         ddr_->registerVariable<bool>(param_name, true,
             boost::bind(&Frei0rImage::boolCallback, this, _1, i),
         // ddr_->registerVariable<double>(param_name, true,
@@ -143,21 +160,43 @@ void Frei0rImage::setupPlugin()
       }
       case (F0R_PARAM_DOUBLE): {
         // starting with numbers isn't allowed, so prefix everything
-        ROS_INFO_STREAM("'" << param_name << "'");
+        ROS_INFO_STREAM(i << " double '" << param_name << "'");
         ddr_->registerVariable<double>(param_name, 0.5,
             boost::bind(&Frei0rImage::doubleCallback, this, _1, i),
             info.explanation, 0.0, 1.0);
       }
       case (F0R_PARAM_COLOR): {
+        ROS_INFO_STREAM(i << " color '" << param_name << "'");
       }
       case (F0R_PARAM_POSITION): {
+        ROS_INFO_STREAM(i << " position '" << param_name << "'");
       }
       case (F0R_PARAM_STRING): {
+        ROS_INFO_STREAM(i << " string '" << param_name << "'");
       }
     }
   }
 
   ddr_->publishServicesTopics();
+}
+
+bool getPluginInfo(const std::string& name, std::string& plugin_name, int& plugin_type)
+{
+  void* handle = dlopen(name.c_str(), RTLD_NOW);
+  if (!handle) {
+    return false;
+  }
+  f0r_get_plugin_info_t get_plugin_info = (f0r_get_plugin_info_t)dlsym(handle, "f0r_get_plugin_info");
+  if (!get_plugin_info) {
+    dlclose(handle);
+    return false;
+  }
+  f0r_plugin_info_t info;
+  get_plugin_info(&info);
+  plugin_name = info.name;
+  plugin_type = info.plugin_type;
+  dlclose(handle);
+  return true;
 }
 
 Plugin::Plugin(const std::string& name)
@@ -204,7 +243,11 @@ Plugin::Plugin(const std::string& name)
 
 Plugin::~Plugin()
 {
-  deinit();
+  if (handle_) {
+    instance_ = nullptr;
+    deinit();
+    dlclose(handle_);
+  }
 }
 
 void Frei0rImage::widthCallback(int width)
@@ -354,6 +397,16 @@ void Instance::getValues()
 void Frei0rImage::update(const ros::TimerEvent& event)
 {
   if (new_plugin_name_ == "none") {
+    if (plugin_) {
+      plugin_ = nullptr;
+      ddr_ = nullptr;
+    }
+    if (!ddr_) {
+      // make an empty ddr just to keep client happy (though it won't like
+      // the interruption in service, if it notices).
+      ddr_ = std::make_unique<ddynamic_reconfigure::DDynamicReconfigure>(getPrivateNodeHandle());
+      ddr_->publishServicesTopics();
+    }
     return;
   }
   if ((!plugin_) || (new_plugin_name_ != plugin_->plugin_name_)) {
@@ -373,7 +426,6 @@ void Frei0rImage::update(const ros::TimerEvent& event)
   }
 
   plugin_->instance_->updateParams();
-
   plugin_->instance_->update(event.current_real);
 
   pub_.publish(plugin_->instance_->msg_);

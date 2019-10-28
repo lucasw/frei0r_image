@@ -48,6 +48,9 @@ typedef void (*f0r_update2_t)(f0r_instance_t instance, double time,
       const uint32_t* inframe3,
       uint32_t* outframe);
 
+bool getPluginInfo(const std::string& name, std::string& plugin_name,
+    int& plugin_type);  // f0r_plugin_info_t& info);
+
 struct Instance
 {
   Instance(unsigned int& width, unsigned int& height,

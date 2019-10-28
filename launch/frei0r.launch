@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<launch>
+
+  <group ns="frei0r">
+    <!--
+    <node name="nodelet_manager" pkg="nodelet" type="nodelet"
+        args="manager" output="screen" />
+    <node name="screen_grab" pkg="nodelet" type="nodelet"
+        args="load screen_grab/ScreenGrab nodelet_manager" output="screen" >
+      <param name="update_rate" value="$(arg update_rate)" />
+      <param name="x_offset" value="50" />
+      <param name="y_offset" value="50" />
+      <param name="width" value="500" />
+      <param name="height" value="500" />
+    </node>
+    -->
+
+    <node name="frei0r" pkg="frei0r_image" type="frei0r_image_node"
+      output="screen" >
+      <param name="path" value="$(env HOME)/other/install/lib/frei0r-1" />
+    </node>
+
+    <!-- TODO(lucasw) launch rqt -->
+    <node name="rqt_traj" pkg="rqt_gui" type="rqt_gui"
+      args="--perspective-file $(find frei0r_image)/config/frei0r.perspective"
+      output="screen" >
+    </node>
+  </group>
+</launch>
