@@ -7,6 +7,7 @@
 #ifndef FREI0R_IMAGE_FREI0R_IMAGE_HPP
 #define FREI0R_IMAGE_FREI0R_IMAGE_HPP
 
+#include <cv_bridge/cv_bridge.h>
 #include <ddynamic_reconfigure/ddynamic_reconfigure.h>
 #include <experimental/filesystem>
 // TODO(lucasw) there is a C++ header in the latest frei0r sources,
@@ -115,9 +116,10 @@ struct Instance
   void update(const ros::Time stamp);
   // TODO(lucasw) could be cv::Mat
   std::vector<uint32_t> in_frame_;
+  // sensor_msgs::ImagePtr image_in_msg_;
+  cv::Mat image_in_;
   // TODO(lucasw) needs to be ptr
   sensor_msgs::Image image_out_msg_;
-  sensor_msgs::ImagePtr image_in_msg_;
 
   unsigned int width_ = 0;
   unsigned int height_ = 0;

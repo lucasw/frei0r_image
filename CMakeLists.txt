@@ -4,6 +4,7 @@ project(frei0r_image)
 add_compile_options(-std=c++1z)
 
 find_package(catkin REQUIRED COMPONENTS
+  cv_bridge
   dynamic_reconfigure
   ddynamic_reconfigure
   message_generation

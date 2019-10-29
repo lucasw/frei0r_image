@@ -127,15 +127,14 @@ void Frei0rImage::imageCallback(const sensor_msgs::ImagePtr& msg)
   if ((!plugin_) || (!plugin_->instance_)) {
     return;
   }
-  if (msg->encoding != "bgra8") {
-    ROS_WARN_STREAM_THROTTLE(1.0, "can't handle encoding " << msg->encoding);
-  }
   // TODO(lucasw) better off using cv bridge and converting to right
   // encoding.
   // TODO(lucasw) need to adjustWidth on these, and then resize the data
   new_width_ = msg->width;
   new_height_ = msg->height;
   adjustWidthHeight(new_width_, new_height_);
+
+#if 0
   if ((new_width_ == msg->width) && (new_height_ == msg->height)) {
     plugin_->instance_->image_in_msg_ = msg;
   } else {
@@ -158,6 +157,17 @@ void Frei0rImage::imageCallback(const sensor_msgs::ImagePtr& msg)
       // make a black background and copy the image into it
     }
   }
+#endif
+
+  cv_bridge::CvImageConstPtr cv_ptr;
+  try {
+    cv_ptr = cv_bridge::toCvShare(msg, "bgra8");
+  } catch (cv_bridge::Exception& ex) {
+    ROS_ERROR_THROTTLE(1.0, "cv bridge exception %s", ex.what());
+    return;
+  }
+  cv::resize(cv_ptr->image, plugin_->instance_->image_in_,
+      cv::Size(new_width_, new_height_), cv::INTER_NEAREST);
 }
 
 void Frei0rImage::selectPlugin(std::string plugin_name)
@@ -556,11 +566,11 @@ void Instance::update(const ros::Time stamp)
   //     (fi_.plugin_type != F0R_PLUGIN_TYPE_MIXER3)) {
   switch (fi_.plugin_type) {
     case (F0R_PLUGIN_TYPE_FILTER): {
-      if (image_in_msg_) {
+      if (!image_in_.empty()) {
         // TODO(lucasw) image_in_msg width and height may not be
         // multiples of 8
         update1(instance_, time_val,
-            reinterpret_cast<uint32_t*>(&image_in_msg_->data[0]),
+            reinterpret_cast<uint32_t*>(&image_in_.data[0]),
             reinterpret_cast<uint32_t*>(&image_out_msg_.data[0]));
       }
       break;

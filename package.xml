@@ -10,6 +10,7 @@
   <author email="wsacul@gmail.com">Lucas Walter</author>
 
   <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>cv_bridge</build_depend>
   <build_depend>dynamic_reconfigure</build_depend>
   <build_depend>ddynamic_reconfigure</build_depend>
   <build_depend>message_generation</build_depend>
@@ -17,6 +18,7 @@
   <build_depend>roslint</build_depend>
   <build_depend>sensor_msgs</build_depend>
   <build_depend>std_msgs</build_depend>
+  <run_depend>cv_bridge</run_depend>
   <run_depend>dynamic_reconfigure</run_depend>
   <run_depend>ddynamic_reconfigure</run_depend>
   <run_depend>message_generation</run_depend>
