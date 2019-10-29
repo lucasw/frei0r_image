@@ -25,6 +25,8 @@
 namespace frei0r_image
 {
 
+void adjustWidthHeight(unsigned int& width, unsigned int& height);
+
 typedef int  (*f0r_init_t)();
 typedef void (*f0r_deinit_t)();
 typedef void (*f0r_get_plugin_info_t)(f0r_plugin_info_t* info);
@@ -114,7 +116,7 @@ struct Instance
   // TODO(lucasw) could be cv::Mat
   std::vector<uint32_t> in_frame_;
   // TODO(lucasw) needs to be ptr
-  sensor_msgs::Image msg_;
+  sensor_msgs::Image image_out_msg_;
   sensor_msgs::ImagePtr image_in_msg_;
 
   unsigned int width_ = 0;

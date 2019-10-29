@@ -33,7 +33,7 @@ std::string sanitize(const std::string& text)
   std::string text2 = text;
   // spaces aren't allowed
   for (char& c : text2) {
-    if (c == ' ') {
+    if (!std::isalnum(c)) {
       c = '_';
     }
   }
@@ -127,10 +127,37 @@ void Frei0rImage::imageCallback(const sensor_msgs::ImagePtr& msg)
   if ((!plugin_) || (!plugin_->instance_)) {
     return;
   }
+  if (msg->encoding != "bgra8") {
+    ROS_WARN_STREAM_THROTTLE(1.0, "can't handle encoding " << msg->encoding);
+  }
+  // TODO(lucasw) better off using cv bridge and converting to right
+  // encoding.
   // TODO(lucasw) need to adjustWidth on these, and then resize the data
   new_width_ = msg->width;
   new_height_ = msg->height;
-  plugin_->instance_->image_in_msg_ = msg;
+  adjustWidthHeight(new_width_, new_height_);
+  if ((new_width_ == msg->width) && (new_height_ == msg->height)) {
+    plugin_->instance_->image_in_msg_ = msg;
+  } else {
+    plugin_->instance_->image_in_msg_ = boost::make_shared<sensor_msgs::Image>();
+    plugin_->instance_->image_in_msg_->encoding = msg->encoding;
+    plugin_->instance_->image_in_msg_->width = new_width_;
+    plugin_->instance_->image_in_msg_->height = new_height_;
+    plugin_->instance_->image_in_msg_->step = msg->width * 4;
+    plugin_->instance_->image_in_msg_->data.resize(new_width_ * new_height_);
+    if (new_width_ == msg->width) {
+      std::copy(msg->data.begin(), msg->data.begin() + new_width_ * new_height_ * 4,
+          plugin_->instance_->image_in_msg_->data.begin());
+    } else if ((msg->width > 8) && (msg->height > 8)) {
+      for (size_t i = 0; i < new_height_; ++i) {
+        std::copy(msg->data.begin() + i * (msg->width * 4),
+                  msg->data.begin() + i * (msg->width * 4) + new_width_,
+                  plugin_->instance_->image_in_msg_->data.begin() + i * (new_width_ * 4));
+      }
+    } else {
+      // make a black background and copy the image into it
+    }
+  }
 }
 
 void Frei0rImage::selectPlugin(std::string plugin_name)
@@ -347,11 +374,11 @@ void Plugin::print()
 void adjustWidthHeight(unsigned int& width, unsigned int& height)
 {
   const unsigned align = 8;
-  width = (width / align) * align;
+  width -= width % 8;
   if (width == 0) {
     width = align;
   }
-  height = (height / align) * align;
+  height -= height % 8;
   if (height == 0) {
     height = align;
   }
@@ -383,11 +410,11 @@ Instance::Instance(unsigned int& width, unsigned int& height,
     height_ = height;
     instance_ = construct(width_, height_);
     // getValues();
-    msg_.data.resize(width_ * height_ * 4);
-    msg_.encoding = "bgra8";
-    msg_.width = width_;
-    msg_.height = height_;
-    msg_.step = width_ * 4;
+    image_out_msg_.data.resize(width_ * height_ * 4);
+    image_out_msg_.encoding = "bgra8";
+    image_out_msg_.width = width_;
+    image_out_msg_.height = height_;
+    image_out_msg_.step = width_ * 4;
     if (fi_.plugin_type == F0R_PLUGIN_TYPE_SOURCE) {
       return;
     }
@@ -483,7 +510,7 @@ void Frei0rImage::update(const ros::TimerEvent& event)
   plugin_->instance_->updateParams();
   plugin_->instance_->update(event.current_real);
 
-  pub_.publish(plugin_->instance_->msg_);
+  pub_.publish(plugin_->instance_->image_out_msg_);
 }
 
 void Instance::updateParams()
@@ -521,7 +548,7 @@ Plugin::update(const ros::Time stamp)
 
 void Instance::update(const ros::Time stamp)
 {
-  msg_.header.stamp = stamp;
+  image_out_msg_.header.stamp = stamp;
 
   const double time_val = stamp.toSec();
 
@@ -534,14 +561,14 @@ void Instance::update(const ros::Time stamp)
         // multiples of 8
         update1(instance_, time_val,
             reinterpret_cast<uint32_t*>(&image_in_msg_->data[0]),
-            reinterpret_cast<uint32_t*>(&msg_.data[0]));
+            reinterpret_cast<uint32_t*>(&image_out_msg_.data[0]));
       }
       break;
     }
     case  (F0R_PLUGIN_TYPE_SOURCE): {
       update1(instance_, time_val,
           nullptr,
-          reinterpret_cast<uint32_t*>(&msg_.data[0]));
+          reinterpret_cast<uint32_t*>(&image_out_msg_.data[0]));
       break;
     }
   }
