@@ -15,6 +15,7 @@
 // #define _UNIX03_SOURCE
 #include <dlfcn.h>
 #include <frei0r.h>
+#include <frei0r_image/LoadPlugin.h>
 #include <iostream>
 #include <map>
 #include <nodelet/nodelet.h>
@@ -182,14 +183,16 @@ public:
 
   void imageCallback(const sensor_msgs::ImagePtr& msg);
 private:
-  std::string new_plugin_name_ = "none";
   ros::Publisher pub_;
   ros::Subscriber sub_;
   ros::Timer timer_;
   std::unique_ptr<ddynamic_reconfigure::DDynamicReconfigure> ddr_;
-  std::unique_ptr<ddynamic_reconfigure::DDynamicReconfigure> select_plugin_ddr_;
+  // std::unique_ptr<ddynamic_reconfigure::DDynamicReconfigure> select_plugin_ddr_;
 
-  void setupPlugin();
+  ros::ServiceServer load_plugin_srv_;
+  bool loadPlugin(LoadPlugin::Request& req, LoadPlugin::Response& resp);
+
+  bool setupPlugin(const std::string& plugin_name);
   // std::map<int, std::map<std::string, std::shared_ptr<Frei0rImage>>> plugins_;
 
   unsigned int new_width_ = 0;

@@ -4,6 +4,7 @@
  * https://frei0r.dyne.org/codedoc/html/group__pluglocations.html
  */
 
+#include <algorithm>
 #include <ddynamic_reconfigure/ddynamic_reconfigure.h>
 #include <experimental/filesystem>
 // TODO(lucasw) there is a C++ header in the latest frei0r sources,
@@ -19,7 +20,6 @@
 #include <ros/ros.h>
 #include <sensor_msgs/Image.h>
 #include <string>
-
 
 namespace frei0r_image
 {
@@ -46,6 +46,7 @@ void Frei0rImage::onInit()
 {
   pub_ = getNodeHandle().advertise<sensor_msgs::Image>("image", 3);
 
+#if 0
   // TODO(lucasw) one of the ddr variables could be a path name
   std::vector<std::string> plugin_dirs = {
     // "/usr/lib/frei0r-1/",  // ubuntu frei0r-plugins puts them here
@@ -115,7 +116,10 @@ void Frei0rImage::onInit()
 #endif
 
   select_plugin_ddr_->publishServicesTopics();
-
+#endif
+  setupPlugin("none");
+  load_plugin_srv_ = getPrivateNodeHandle().advertiseService("load_plugin",
+      &Frei0rImage::loadPlugin, this);
   timer_ = getPrivateNodeHandle().createTimer(ros::Duration(0.1),
       &Frei0rImage::update, this);
 
@@ -170,27 +174,56 @@ void Frei0rImage::imageCallback(const sensor_msgs::ImagePtr& msg)
       cv::Size(new_width_, new_height_), cv::INTER_NEAREST);
 }
 
-void Frei0rImage::selectPlugin(std::string plugin_name)
+bool Frei0rImage::loadPlugin(LoadPlugin::Request& req, LoadPlugin::Response& resp)
 {
-  ROS_INFO_STREAM(plugin_name);
-  new_plugin_name_ = plugin_name;
+  resp.success = setupPlugin(req.plugin_path);
+  if (resp.success) {
+  }
+  return true;
 }
 
-void Frei0rImage::setupPlugin()
+// TODO(lucasw) pass in string to store error messages
+bool Frei0rImage::setupPlugin(const std::string& plugin_name)
 {
-  ROS_INFO_STREAM(new_plugin_name_);
-  if (!plugin_) {
-    ROS_ERROR_STREAM("no plugin");
-    return;
+  if (plugin_name == "none") {
+    if (plugin_) {
+      plugin_ = nullptr;
+      ddr_ = nullptr;
+    }
+    if (!ddr_) {
+      // make an empty ddr just to keep client happy (though it won't like
+      // the interruption in service, if it notices).
+      ddr_ = std::make_unique<ddynamic_reconfigure::DDynamicReconfigure>(getPrivateNodeHandle());
+      ddr_->publishServicesTopics();
+    }
+    return true;
   }
-  if (!plugin_->instance_) {
-    ROS_ERROR_STREAM("no instance");
-    return;
+
+  std::unique_ptr<Plugin> plugin;
+  try {
+    plugin = std::make_unique<Plugin>(plugin_name);
+  } catch (std::runtime_error& ex) {
+    ROS_ERROR_STREAM(ex.what());
+    return false;
   }
+  ROS_INFO_STREAM(plugin_name);
+  if (!plugin) {
+    ROS_ERROR_STREAM("no plugin " << plugin_name);
+    return false;
+  }
+
+  plugin->makeInstance(new_width_, new_height_);
+  if (!plugin->instance_) {
+    ROS_ERROR_STREAM("no instance " << plugin_name);
+    return false;
+  }
+
+  plugin_ = std::move(plugin);
+
   ddr_ = std::make_unique<ddynamic_reconfigure::DDynamicReconfigure>(getPrivateNodeHandle());
-  ddr_->registerVariable<int>("width", 8,
+  ddr_->registerVariable<int>("width", 320,
       boost::bind(&Frei0rImage::widthCallback, this, _1), "width", 8, 2048);
-  ddr_->registerVariable<int>("height", 8,
+  ddr_->registerVariable<int>("height", 240,
       boost::bind(&Frei0rImage::heightCallback, this, _1), "height", 8, 2048);
 
   for (int i = 0; i < plugin_->fi_.num_params; ++i) {
@@ -240,6 +273,7 @@ void Frei0rImage::setupPlugin()
   }
 
   ddr_->publishServicesTopics();
+  return true;
 }
 
 bool getPluginInfo(const std::string& name, std::string& plugin_name, int& plugin_type)
@@ -270,8 +304,7 @@ Plugin::Plugin(const std::string& name)
   plugin_name_ = name;
   handle_ = dlopen(name.c_str(), RTLD_NOW);
   if (!handle_) {
-    // TODO(lucasw) throw
-    return;
+    throw std::runtime_error("no plugin");
   }
   // std::cout << name << " " << handle_ << "\n";
 
@@ -293,7 +326,7 @@ Plugin::Plugin(const std::string& name)
     // throw std::runtime_error("some symbols are missing in frei0r plugin");
     ROS_ERROR_STREAM("some symbols are missing in frei0r plugin");
     // TODO(lucasw) throw
-    return;
+    throw std::runtime_error("bad plugin");
   }
 
   init();
@@ -306,6 +339,7 @@ Plugin::Plugin(const std::string& name)
 Plugin::~Plugin()
 {
   if (handle_) {
+    ROS_INFO_STREAM("shutting down " << plugin_name_);
     instance_ = nullptr;
     deinit();
     dlclose(handle_);
@@ -484,28 +518,6 @@ void Instance::getValues()
 void Frei0rImage::update(const ros::TimerEvent& event)
 {
   adjustWidthHeight(new_width_, new_height_);
-
-  if (new_plugin_name_ == "none") {
-    if (plugin_) {
-      plugin_ = nullptr;
-      ddr_ = nullptr;
-    }
-    if (!ddr_) {
-      // make an empty ddr just to keep client happy (though it won't like
-      // the interruption in service, if it notices).
-      ddr_ = std::make_unique<ddynamic_reconfigure::DDynamicReconfigure>(getPrivateNodeHandle());
-      ddr_->publishServicesTopics();
-    }
-    return;
-  }
-  if ((!plugin_) || (new_plugin_name_ != plugin_->plugin_name_)) {
-    if (plugin_) {
-      ROS_INFO_STREAM(new_plugin_name_ << " " << plugin_->plugin_name_);
-    }
-    plugin_ = std::make_unique<Plugin>(new_plugin_name_);
-    plugin_->makeInstance(new_width_, new_height_);
-    setupPlugin();
-  }
   if (!plugin_) {
     return;
   }

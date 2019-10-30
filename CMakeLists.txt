@@ -22,6 +22,16 @@ set(
 
 roslint_cpp()
 
+add_service_files(
+  FILES
+  LoadPlugin.srv
+)
+
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+)
+
 catkin_package(
   INCLUDE_DIRS include
   CATKIN_DEPENDS ddynamic_reconfigure
@@ -35,7 +45,7 @@ include_directories(
 add_library(frei0r_image
   src/frei0r_image.cpp
 )
-# add_dependencies(frei0r_image ${PROJECT_NAME}_gencfg)
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_gencpp)
 target_link_libraries(frei0r_image
   ${catkin_LIBRARIES}
   stdc++fs

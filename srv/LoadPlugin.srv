@@ -1,0 +1,4 @@
+string plugin_path
+---
+bool success
+string message
