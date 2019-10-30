@@ -47,54 +47,6 @@ void Frei0rImage::onInit()
   pub_ = getNodeHandle().advertise<sensor_msgs::Image>("image", 3);
 
 #if 0
-  // TODO(lucasw) one of the ddr variables could be a path name
-  std::vector<std::string> plugin_dirs = {
-    // "/usr/lib/frei0r-1/",  // ubuntu frei0r-plugins puts them here
-    // "/usr/local/lib/frei0r-1/",
-     //  "/.frei0r-1/lib"  // TODO(lucasw) need to prefix $HOME to this
-  };
-  std::string custom_path = "/usr/lib/frei0r-1/";
-  getPrivateNodeHandle().getParam("path", custom_path);
-  plugin_dirs.push_back(custom_path);
-
-  select_plugin_ddr_ = std::make_unique<ddynamic_reconfigure::DDynamicReconfigure>(getNodeHandle());
-
-  std::map<std::string, std::string> enum_map;
-  enum_map["none"] = "none";
-
-  // std::vector<std::string> plugin_names;
-  for (const auto& dir : plugin_dirs) {
-    if (!std::experimental::filesystem::exists(dir)) {
-      continue;
-    }
-    try {
-      for (const auto& entry : std::experimental::filesystem::directory_iterator(dir)) {
-        // TODO(lucasw) get the name and type of the plugin
-        // and use it here.
-        const auto path = entry.path();
-        std::string name;
-        int plugin_type = 0;
-        // ROS_INFO_STREAM(path);
-        const bool rv = getPluginInfo(path, name, plugin_type);
-        if (!rv) {
-          continue;
-        }
-        // if (plugin_type != F0R_PLUGIN_TYPE_SOURCE) {
-        if (plugin_type != F0R_PLUGIN_TYPE_FILTER) {
-          continue;
-        }
-        ROS_INFO_STREAM(plugin_type << " " << name);
-        // const std::string name = info.name;
-        enum_map[name] = path;
-      }
-    } catch (std::experimental::filesystem::v1::__cxx11::filesystem_error& ex) {
-      std::cout << dir << " " << ex.what() << "\n";
-    }
-  }
-  select_plugin_ddr_->registerEnumVariable<std::string>("frei0r", "none",
-      boost::bind(&Frei0rImage::selectPlugin, this, _1), "frei0r", enum_map);
-
-#if 0
   std::map<std::string, bool> bad_frei0rs;
   bad_frei0rs["/usr/lib/frei0r-1/curves.so"] = true;
 
@@ -115,8 +67,6 @@ void Frei0rImage::onInit()
   }
 #endif
 
-  select_plugin_ddr_->publishServicesTopics();
-#endif
   setupPlugin("none");
   load_plugin_srv_ = getPrivateNodeHandle().advertiseService("load_plugin",
       &Frei0rImage::loadPlugin, this);
@@ -273,25 +223,6 @@ bool Frei0rImage::setupPlugin(const std::string& plugin_name)
   }
 
   ddr_->publishServicesTopics();
-  return true;
-}
-
-bool getPluginInfo(const std::string& name, std::string& plugin_name, int& plugin_type)
-{
-  void* handle = dlopen(name.c_str(), RTLD_NOW);
-  if (!handle) {
-    return false;
-  }
-  f0r_get_plugin_info_t get_plugin_info = (f0r_get_plugin_info_t)dlsym(handle, "f0r_get_plugin_info");
-  if (!get_plugin_info) {
-    dlclose(handle);
-    return false;
-  }
-  f0r_plugin_info_t info;
-  get_plugin_info(&info);
-  plugin_name = info.name;
-  plugin_type = info.plugin_type;
-  dlclose(handle);
   return true;
 }
 

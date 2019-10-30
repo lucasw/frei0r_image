@@ -41,15 +41,23 @@
       <!--remap from="image_in" to="/image_pub/image_raw" /-->
       <remap from="image_in" to="/image_source/image_raw" />
     </node>
+    <node name="selector" pkg="frei0r_image" type="select_plugin"
+      output="screen">
+      <remap from="load_plugin" to="frei0r/load_plugin" />
+    </node>
   </group>
 
   <group ns="frei0r2">
-    <node name="frei0r2" pkg="frei0r_image" type="frei0r_image_node"
+    <node name="frei0r" pkg="frei0r_image" type="frei0r_image_node"
       output="screen" >
       <param name="path" value="$(env HOME)/other/install/lib/frei0r-1" />
       <!--remap from="image_in" to="/image_pub/image_raw" /-->
       <remap from="image_in" to="/frei0r1/image" />
       <remap from="image" to="image" />
+    </node>
+    <node name="selector" pkg="frei0r_image" type="select_plugin"
+      output="screen">
+      <remap from="load_plugin" to="frei0r/load_plugin" />
     </node>
   </group>
 

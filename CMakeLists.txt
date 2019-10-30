@@ -65,7 +65,14 @@ target_link_libraries(list_frei0rs
   stdc++fs
 )
 
-install(TARGETS frei0r_image
+add_executable(select_plugin src/select_plugin.cpp)
+target_link_libraries(select_plugin
+  ${catkin_LIBRARIES}
+  frei0r_image
+  stdc++fs
+)
+
+install(TARGETS frei0r_image select_plugin
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
