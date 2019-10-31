@@ -19,46 +19,29 @@
     <param name="pixel_format" value="yuyv"/>
   </node>
 
-  <!-- TODO(lucasw) need to separate out the non-private ddr
-       to be able to have to frei0rs in the same ns -->
-  <group ns="frei0r1">
-    <!--
-    <node name="nodelet_manager" pkg="nodelet" type="nodelet"
-        args="manager" output="screen" />
-    <node name="screen_grab" pkg="nodelet" type="nodelet"
-        args="load screen_grab/ScreenGrab nodelet_manager" output="screen" >
-      <param name="update_rate" value="$(arg update_rate)" />
-      <param name="x_offset" value="50" />
-      <param name="y_offset" value="50" />
-      <param name="width" value="500" />
-      <param name="height" value="500" />
-    </node>
-    -->
-
-    <node name="frei0r" pkg="frei0r_image" type="frei0r_image_node"
-      output="screen" >
-      <param name="path" value="$(env HOME)/other/install/lib/frei0r-1" />
-      <!--remap from="image_in" to="/image_pub/image_raw" /-->
-      <remap from="image_in" to="/image_source/image_raw" />
-    </node>
-    <node name="selector" pkg="frei0r_image" type="select_plugin"
-      output="screen">
-      <remap from="load_plugin" to="frei0r/load_plugin" />
-    </node>
+  <group ns="frei0r0">
+    <include file="$(find frei0r_image)/launch/single.launch" >
+      <arg name="image_in0" default="/image_source/image_raw" />
+      <arg name="image_in1" default="/frei0r2/image_out" />
+      <arg name="image_in2" default="/frei0r1/image_out" />
+      <arg name="image_out" default="image_out" />
+    </include>
   </group>
-
+  <group ns="frei0r1">
+    <include file="$(find frei0r_image)/launch/single.launch" >
+      <arg name="image_in0" default="/frei0r0/image_out" />
+      <arg name="image_in1" default="/frei0r2/image_out" />
+      <arg name="image_in2" default="image_in2" />
+      <arg name="image_out" default="image_out" />
+    </include>
+  </group>
   <group ns="frei0r2">
-    <node name="frei0r" pkg="frei0r_image" type="frei0r_image_node"
-      output="screen" >
-      <param name="path" value="$(env HOME)/other/install/lib/frei0r-1" />
-      <!--remap from="image_in" to="/image_pub/image_raw" /-->
-      <remap from="image_in" to="/frei0r1/image" />
-      <remap from="image" to="image" />
-    </node>
-    <node name="selector" pkg="frei0r_image" type="select_plugin"
-      output="screen">
-      <remap from="load_plugin" to="frei0r/load_plugin" />
-    </node>
+    <include file="$(find frei0r_image)/launch/single.launch" >
+      <arg name="image_in0" default="/frei0r1/image_out" />
+      <arg name="image_in1" default="/frei0r0/image_out" />
+      <arg name="image_in2" default="image_in2" />
+      <arg name="image_out" default="image_out" />
+    </include>
   </group>
 
   <!-- TODO(lucasw) launch rqt -->

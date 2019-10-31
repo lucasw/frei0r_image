@@ -118,7 +118,7 @@ struct Instance
   // TODO(lucasw) could be cv::Mat
   std::vector<uint32_t> in_frame_;
   // sensor_msgs::ImagePtr image_in_msg_;
-  cv::Mat image_in_;
+  cv::Mat image_in_[3];
   // TODO(lucasw) needs to be ptr
   sensor_msgs::Image image_out_msg_;
 
@@ -181,10 +181,10 @@ public:
 
   void update(const ros::TimerEvent& event);
 
-  void imageCallback(const sensor_msgs::ImagePtr& msg);
+  void imageCallback(const sensor_msgs::ImageConstPtr& msg, const size_t index);
 private:
   ros::Publisher pub_;
-  ros::Subscriber sub_;
+  ros::Subscriber sub_[3];
   ros::Timer timer_;
   std::unique_ptr<ddynamic_reconfigure::DDynamicReconfigure> ddr_;
   // std::unique_ptr<ddynamic_reconfigure::DDynamicReconfigure> select_plugin_ddr_;
@@ -195,8 +195,8 @@ private:
   bool setupPlugin(const std::string& plugin_name);
   // std::map<int, std::map<std::string, std::shared_ptr<Frei0rImage>>> plugins_;
 
-  unsigned int new_width_ = 0;
-  unsigned int new_height_ = 0;
+  unsigned int new_width_ = 320;
+  unsigned int new_height_ = 200;
 
   std::unique_ptr<Plugin> plugin_;
 };

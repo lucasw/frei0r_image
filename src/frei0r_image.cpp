@@ -44,7 +44,7 @@ std::string sanitize(const std::string& text)
 
 void Frei0rImage::onInit()
 {
-  pub_ = getNodeHandle().advertise<sensor_msgs::Image>("image", 3);
+  pub_ = getNodeHandle().advertise<sensor_msgs::Image>("image_out", 3);
 
 #if 0
   std::map<std::string, bool> bad_frei0rs;
@@ -73,10 +73,15 @@ void Frei0rImage::onInit()
   timer_ = getPrivateNodeHandle().createTimer(ros::Duration(0.1),
       &Frei0rImage::update, this);
 
-  sub_ = getNodeHandle().subscribe("image_in", 1, &Frei0rImage::imageCallback, this);
+  sub_[0] = getNodeHandle().subscribe<sensor_msgs::Image>("image_in0", 2,
+      boost::bind(&Frei0rImage::imageCallback, this, _1, 0));
+  sub_[1] = getNodeHandle().subscribe<sensor_msgs::Image>("image_in1", 2,
+      boost::bind(&Frei0rImage::imageCallback, this, _1, 1));
+  sub_[2] = getNodeHandle().subscribe<sensor_msgs::Image>("image_in2", 2,
+      boost::bind(&Frei0rImage::imageCallback, this, _1, 2));
 }
 
-void Frei0rImage::imageCallback(const sensor_msgs::ImagePtr& msg)
+void Frei0rImage::imageCallback(const sensor_msgs::ImageConstPtr& msg, const size_t index)
 {
   if ((!plugin_) || (!plugin_->instance_)) {
     return;
@@ -84,9 +89,9 @@ void Frei0rImage::imageCallback(const sensor_msgs::ImagePtr& msg)
   // TODO(lucasw) better off using cv bridge and converting to right
   // encoding.
   // TODO(lucasw) need to adjustWidth on these, and then resize the data
-  new_width_ = msg->width;
-  new_height_ = msg->height;
-  adjustWidthHeight(new_width_, new_height_);
+  // new_width_ = msg->width;
+  // new_height_ = msg->height;
+  // adjustWidthHeight(new_width_, new_height_);
 
 #if 0
   if ((new_width_ == msg->width) && (new_height_ == msg->height)) {
@@ -120,7 +125,7 @@ void Frei0rImage::imageCallback(const sensor_msgs::ImagePtr& msg)
     ROS_ERROR_THROTTLE(1.0, "cv bridge exception %s", ex.what());
     return;
   }
-  cv::resize(cv_ptr->image, plugin_->instance_->image_in_,
+  cv::resize(cv_ptr->image, plugin_->instance_->image_in_[index],
       cv::Size(new_width_, new_height_), cv::INTER_NEAREST);
 }
 
@@ -501,6 +506,9 @@ Plugin::update(const ros::Time stamp)
 
 void Instance::update(const ros::Time stamp)
 {
+  if ((width_ < 8) || (height_ < 8)) {
+    return;
+  }
   image_out_msg_.header.stamp = stamp;
 
   const double time_val = stamp.toSec();
@@ -509,11 +517,17 @@ void Instance::update(const ros::Time stamp)
   //     (fi_.plugin_type != F0R_PLUGIN_TYPE_MIXER3)) {
   switch (fi_.plugin_type) {
     case (F0R_PLUGIN_TYPE_FILTER): {
-      if (!image_in_.empty()) {
+      if (!image_in_[0].empty()) {
         // TODO(lucasw) image_in_msg width and height may not be
         // multiples of 8
+        {
+          const int i = 0;
+          cv::resize(image_in_[i], image_in_[i],
+              cv::Size(width_, height_),
+              cv::INTER_NEAREST);
+        }
         update1(instance_, time_val,
-            reinterpret_cast<uint32_t*>(&image_in_.data[0]),
+            reinterpret_cast<uint32_t*>(&image_in_[0].data[0]),
             reinterpret_cast<uint32_t*>(&image_out_msg_.data[0]));
       }
       break;
@@ -522,6 +536,36 @@ void Instance::update(const ros::Time stamp)
       update1(instance_, time_val,
           nullptr,
           reinterpret_cast<uint32_t*>(&image_out_msg_.data[0]));
+      break;
+    }
+    case (F0R_PLUGIN_TYPE_MIXER2): {
+      if (!image_in_[0].empty() && !image_in_[0].empty()) {
+        for (size_t i = 0; i < 2; ++i) {
+          cv::resize(image_in_[i], image_in_[i],
+              cv::Size(width_, height_),
+              cv::INTER_NEAREST);
+        }
+        update2(instance_, time_val,
+            reinterpret_cast<uint32_t*>(&image_in_[0].data[0]),
+            reinterpret_cast<uint32_t*>(&image_in_[1].data[0]),
+            nullptr,
+            reinterpret_cast<uint32_t*>(&image_out_msg_.data[0]));
+      }
+      break;
+    }
+    case (F0R_PLUGIN_TYPE_MIXER3): {
+      if (!image_in_[0].empty() && !image_in_[0].empty()) {
+        for (size_t i = 0; i < 3; ++i) {
+          cv::resize(image_in_[i], image_in_[i],
+              cv::Size(width_, height_),
+              cv::INTER_NEAREST);
+        }
+        update2(instance_, time_val,
+            reinterpret_cast<uint32_t*>(&image_in_[0].data[0]),
+            reinterpret_cast<uint32_t*>(&image_in_[1].data[0]),
+            reinterpret_cast<uint32_t*>(&image_in_[2].data[0]),
+            reinterpret_cast<uint32_t*>(&image_out_msg_.data[0]));
+      }
       break;
     }
   }

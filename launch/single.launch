@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<launch>
+  <arg name="image_in0" default="image_in0" />
+  <arg name="image_in1" default="image_in1" />
+  <arg name="image_in2" default="image_in2" />
+  <arg name="image_out" default="image_out" />
+
+  <node name="frei0r" pkg="frei0r_image" type="frei0r_image_node"
+    output="screen" >
+    <param name="path" value="$(env HOME)/other/install/lib/frei0r-1" />
+    <remap from="image_in0" to="$(arg image_in0)" />
+    <remap from="image_in1" to="$(arg image_in1)" />
+    <remap from="image_in2" to="$(arg image_in2)" />
+    <remap from="image_out" to="$(arg image_out)" />
+  </node>
+  <node name="selector" pkg="frei0r_image" type="select_plugin"
+    output="screen">
+    <remap from="load_plugin" to="frei0r/load_plugin" />
+  </node>
+</launch>
