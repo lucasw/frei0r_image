@@ -60,8 +60,16 @@ struct Selector
 
     ddr_ = std::make_unique<ddynamic_reconfigure::DDynamicReconfigure>(private_nh_);
 
-    std::map<std::string, std::string> enum_map;
-    enum_map["none"] = "none";
+    std::map<int, std::string> f0r_types;
+    f0r_types[F0R_PLUGIN_TYPE_FILTER] = "filter";
+    f0r_types[F0R_PLUGIN_TYPE_SOURCE] = "source";
+    f0r_types[F0R_PLUGIN_TYPE_MIXER2] = "mixer2";
+    f0r_types[F0R_PLUGIN_TYPE_MIXER3] = "mixer3";
+
+    std::map<int, std::map<std::string, std::string>> enum_map;
+    for (const auto& pair : f0r_types) {
+      enum_map[pair.first]["none"] = "none";
+    }
 
     // std::vector<std::string> plugin_names;
     for (const auto& dir : plugin_dirs) {
@@ -80,21 +88,24 @@ struct Selector
           if (!rv) {
             continue;
           }
+#if 0
           if (!((plugin_type == F0R_PLUGIN_TYPE_SOURCE) ||
                 (plugin_type == F0R_PLUGIN_TYPE_FILTER))) {
             continue;
           }
-
+#endif
           ROS_INFO_STREAM(plugin_type << " " << name);
           // const std::string name = info.name;
-          enum_map[name] = path;
+          enum_map[plugin_type][name] = path;
         }
       } catch (std::experimental::filesystem::v1::__cxx11::filesystem_error& ex) {
         std::cout << dir << " " << ex.what() << "\n";
       }
     }
-    ddr_->registerEnumVariable<std::string>("frei0r", "none",
-        boost::bind(&Selector::select, this, _1), "frei0r", enum_map);
+    for (const auto& pair : enum_map) {
+      ddr_->registerEnumVariable<std::string>(f0r_types[pair.first], "none",
+          boost::bind(&Selector::select, this, _1), f0r_types[pair.first], pair.second);
+    }
 
 #if 0
     std::map<std::string, bool> bad_frei0rs;
