@@ -117,10 +117,10 @@ struct Instance
   void update(const ros::Time stamp);
   // TODO(lucasw) could be cv::Mat
   std::vector<uint32_t> in_frame_;
-  // sensor_msgs::ImagePtr image_in_msg_;
+  // having to convert to cv::Mat eliminates some of the advantage of nodelets
+  // but at least there aren't even more copies.
   cv::Mat image_in_[3];
-  // TODO(lucasw) needs to be ptr
-  sensor_msgs::Image image_out_msg_;
+  sensor_msgs::ImagePtr image_out_msg_ = nullptr;
 
   unsigned int width_ = 0;
   unsigned int height_ = 0;

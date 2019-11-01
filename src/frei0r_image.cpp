@@ -390,11 +390,6 @@ Instance::Instance(unsigned int& width, unsigned int& height,
     height_ = height;
     instance_ = construct(width_, height_);
     // getValues();
-    image_out_msg_.data.resize(width_ * height_ * 4);
-    image_out_msg_.encoding = "bgra8";
-    image_out_msg_.width = width_;
-    image_out_msg_.height = height_;
-    image_out_msg_.step = width_ * 4;
     if (fi_.plugin_type == F0R_PLUGIN_TYPE_SOURCE) {
       return;
     }
@@ -468,7 +463,9 @@ void Frei0rImage::update(const ros::TimerEvent& event)
   plugin_->instance_->updateParams();
   plugin_->instance_->update(event.current_real);
 
-  pub_.publish(plugin_->instance_->image_out_msg_);
+  if (plugin_->instance_->image_out_msg_) {
+    pub_.publish(plugin_->instance_->image_out_msg_);
+  }
 }
 
 void Instance::updateParams()
@@ -506,13 +503,22 @@ Plugin::update(const ros::Time stamp)
 
 void Instance::update(const ros::Time stamp)
 {
-  if ((width_ < 8) || (height_ < 8)) {
+  const auto width = width_;
+  const auto height = height_;
+  if ((width < 8) || (height < 8)) {
     return;
   }
-  image_out_msg_.header.stamp = stamp;
+  image_out_msg_ = sensor_msgs::ImagePtr(new sensor_msgs::Image);
+  image_out_msg_->header.stamp = stamp;
+  image_out_msg_->data.resize(width * height * 4);
+  image_out_msg_->encoding = "bgra8";
+  image_out_msg_->width = width;
+  image_out_msg_->height = height;
+  image_out_msg_->step = width * 4;
 
   const double time_val = stamp.toSec();
 
+  const auto image_out_data = reinterpret_cast<uint32_t*>(&image_out_msg_->data[0]);
   // if ((fi_.plugin_type != F0R_PLUGIN_TYPE_MIXER2) &&
   //     (fi_.plugin_type != F0R_PLUGIN_TYPE_MIXER3)) {
   switch (fi_.plugin_type) {
@@ -523,33 +529,33 @@ void Instance::update(const ros::Time stamp)
         {
           const int i = 0;
           cv::resize(image_in_[i], image_in_[i],
-              cv::Size(width_, height_),
+              cv::Size(width, height),
               cv::INTER_NEAREST);
         }
         update1(instance_, time_val,
             reinterpret_cast<uint32_t*>(&image_in_[0].data[0]),
-            reinterpret_cast<uint32_t*>(&image_out_msg_.data[0]));
+            image_out_data);
       }
       break;
     }
     case  (F0R_PLUGIN_TYPE_SOURCE): {
       update1(instance_, time_val,
           nullptr,
-          reinterpret_cast<uint32_t*>(&image_out_msg_.data[0]));
+          image_out_data);
       break;
     }
     case (F0R_PLUGIN_TYPE_MIXER2): {
       if (!image_in_[0].empty() && !image_in_[0].empty()) {
         for (size_t i = 0; i < 2; ++i) {
           cv::resize(image_in_[i], image_in_[i],
-              cv::Size(width_, height_),
+              cv::Size(width, height),
               cv::INTER_NEAREST);
         }
         update2(instance_, time_val,
             reinterpret_cast<uint32_t*>(&image_in_[0].data[0]),
             reinterpret_cast<uint32_t*>(&image_in_[1].data[0]),
             nullptr,
-            reinterpret_cast<uint32_t*>(&image_out_msg_.data[0]));
+            image_out_data);
       }
       break;
     }
@@ -557,14 +563,14 @@ void Instance::update(const ros::Time stamp)
       if (!image_in_[0].empty() && !image_in_[0].empty()) {
         for (size_t i = 0; i < 3; ++i) {
           cv::resize(image_in_[i], image_in_[i],
-              cv::Size(width_, height_),
+              cv::Size(width, height),
               cv::INTER_NEAREST);
         }
         update2(instance_, time_val,
             reinterpret_cast<uint32_t*>(&image_in_[0].data[0]),
             reinterpret_cast<uint32_t*>(&image_in_[1].data[0]),
             reinterpret_cast<uint32_t*>(&image_in_[2].data[0]),
-            reinterpret_cast<uint32_t*>(&image_out_msg_.data[0]));
+            image_out_data);
       }
       break;
     }
