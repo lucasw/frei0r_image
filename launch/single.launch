@@ -4,8 +4,10 @@
   <arg name="image_in1" default="image_in1" />
   <arg name="image_in2" default="image_in2" />
   <arg name="image_out" default="image_out" />
+  <arg name="nodelet_manager" default="manager" />
 
-  <node name="frei0r" pkg="frei0r_image" type="frei0r_image_node"
+  <node name="frei0r" pkg="nodelet" type="nodelet"
+    args="load frei0r_image/Frei0rImage $(arg nodelet_manager)"
     output="screen" >
     <param name="path" value="$(env HOME)/other/install/lib/frei0r-1" />
     <remap from="image_in0" to="$(arg image_in0)" />
