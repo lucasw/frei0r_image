@@ -1,0 +1,4 @@
+mixer3: {
+  RGB: /usr/lib/frei0r-1/RGB.so,
+  none: none,
+}

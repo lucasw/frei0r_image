@@ -9,7 +9,7 @@
   <node name="frei0r" pkg="nodelet" type="nodelet"
     args="load frei0r_image/Frei0rImage $(arg nodelet_manager)"
     output="screen" >
-    <param name="path" value="$(env HOME)/other/install/lib/frei0r-1" />
+    <!--param name="path" value="$(env HOME)/other/install/lib/frei0r-1" /-->
     <remap from="image_in0" to="$(arg image_in0)" />
     <remap from="image_in1" to="$(arg image_in1)" />
     <remap from="image_in2" to="$(arg image_in2)" />
@@ -17,6 +17,11 @@
   </node>
   <node name="selector" pkg="frei0r_image" type="select_plugin"
     output="screen">
+    <param name="load_from_path" value="false" />
+    <rosparam command="load" file="$(find frei0r_image)/config/source.yaml" />
+    <rosparam command="load" file="$(find frei0r_image)/config/filter.yaml" />
+    <rosparam command="load" file="$(find frei0r_image)/config/mixer2.yaml" />
+    <rosparam command="load" file="$(find frei0r_image)/config/mixer3.yaml" />
     <remap from="load_plugin" to="frei0r/load_plugin" />
   </node>
 </launch>

@@ -24,29 +24,29 @@
 
   <group ns="frei0r0">
     <include file="$(find frei0r_image)/launch/single.launch" >
-      <arg name="image_in0" default="/image_source/image_raw" />
-      <arg name="image_in1" default="/frei0r2/image_out" />
-      <arg name="image_in2" default="/frei0r1/image_out" />
-      <arg name="image_out" default="image_out" />
-      <arg name="nodelet_manager" default="/manager" />
+      <arg name="image_in0" value="/image_source/image_raw" />
+      <arg name="image_in1" value="/frei0r2/image_out" />
+      <arg name="image_in2" value="/frei0r1/image_out" />
+      <arg name="image_out" value="image_out" />
+      <arg name="nodelet_manager" value="/manager" />
     </include>
   </group>
   <group ns="frei0r1">
     <include file="$(find frei0r_image)/launch/single.launch" >
-      <arg name="image_in0" default="/frei0r0/image_out" />
-      <arg name="image_in1" default="/frei0r2/image_out" />
-      <arg name="image_in2" default="image_in2" />
-      <arg name="image_out" default="image_out" />
-      <arg name="nodelet_manager" default="/manager" />
+      <arg name="image_in0" value="/frei0r0/image_out" />
+      <arg name="image_in1" value="/frei0r2/image_out" />
+      <arg name="image_in2" value="image_in2" />
+      <arg name="image_out" value="image_out" />
+      <arg name="nodelet_manager" value="/manager" />
     </include>
   </group>
   <group ns="frei0r2">
     <include file="$(find frei0r_image)/launch/single.launch" >
-      <arg name="image_in0" default="/frei0r1/image_out" />
-      <arg name="image_in1" default="/frei0r0/image_out" />
-      <arg name="image_in2" default="image_in2" />
-      <arg name="image_out" default="image_out" />
-      <arg name="nodelet_manager" default="/manager" />
+      <arg name="image_in0" value="/frei0r1/image_out" />
+      <arg name="image_in1" value="/frei0r0/image_out" />
+      <arg name="image_in2" value="image_in2" />
+      <arg name="image_out" value="image_out" />
+      <arg name="nodelet_manager" value="/manager" />
     </include>
   </group>
 

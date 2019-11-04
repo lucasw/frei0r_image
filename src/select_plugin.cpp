@@ -41,9 +41,41 @@ struct Selector
   ros::NodeHandle nh_;
   ros::NodeHandle private_nh_;
   ros::ServiceClient load_client_;
+  const std::map<int, std::string> f0r_types_ = {
+    {F0R_PLUGIN_TYPE_FILTER, "filter"},
+    {F0R_PLUGIN_TYPE_SOURCE, "source"},
+    {F0R_PLUGIN_TYPE_MIXER2, "mixer2"},
+    {F0R_PLUGIN_TYPE_MIXER3, "mixer3"}
+  };
+  std::map<int, std::map<std::string, std::string>> enum_map_;
 
   Selector() :
     private_nh_("~")
+  {
+    load_client_ = nh_.serviceClient<LoadPlugin>("load_plugin");
+
+    for (const auto& pair : f0r_types_) {
+      enum_map_[pair.first]["none"] = "none";
+    }
+
+    bool load_from_path = true;
+    private_nh_.getParam("load_from_path", load_from_path);
+    if (load_from_path) {
+      getPluginsFromDir();
+    } else {
+      getPluginsFromParam();
+    }
+
+    ddr_ = std::make_unique<ddynamic_reconfigure::DDynamicReconfigure>(private_nh_);
+    for (const auto& pair : enum_map_) {
+      const std::string frei0r_type_name = f0r_types_.at(pair.first);
+      ddr_->registerEnumVariable<std::string>(frei0r_type_name, "none",
+          boost::bind(&Selector::select, this, _1), frei0r_type_name, pair.second);
+    }
+    ddr_->publishServicesTopics();
+  }
+
+  bool getPluginsFromDir()
   {
     // TODO(lucasw) one of the ddr variables could be a path name
     std::vector<std::string> plugin_dirs = {
@@ -55,21 +87,6 @@ struct Selector
     private_nh_.getParam("path", custom_path);
     ROS_INFO_STREAM("custom search path: " << custom_path);
     plugin_dirs.push_back(custom_path);
-
-    load_client_ = nh_.serviceClient<LoadPlugin>("load_plugin");
-
-    ddr_ = std::make_unique<ddynamic_reconfigure::DDynamicReconfigure>(private_nh_);
-
-    std::map<int, std::string> f0r_types;
-    f0r_types[F0R_PLUGIN_TYPE_FILTER] = "filter";
-    f0r_types[F0R_PLUGIN_TYPE_SOURCE] = "source";
-    f0r_types[F0R_PLUGIN_TYPE_MIXER2] = "mixer2";
-    f0r_types[F0R_PLUGIN_TYPE_MIXER3] = "mixer3";
-
-    std::map<int, std::map<std::string, std::string>> enum_map;
-    for (const auto& pair : f0r_types) {
-      enum_map[pair.first]["none"] = "none";
-    }
 
     // std::vector<std::string> plugin_names;
     for (const auto& dir : plugin_dirs) {
@@ -96,17 +113,16 @@ struct Selector
 #endif
           ROS_INFO_STREAM(plugin_type << " " << name);
           // const std::string name = info.name;
-          enum_map[plugin_type][name] = path;
+          enum_map_[plugin_type][name] = path;
         }
       } catch (std::experimental::filesystem::v1::__cxx11::filesystem_error& ex) {
         std::cout << dir << " " << ex.what() << "\n";
       }
     }
-    for (const auto& pair : enum_map) {
-      ddr_->registerEnumVariable<std::string>(f0r_types[pair.first], "none",
-          boost::bind(&Selector::select, this, _1), f0r_types[pair.first], pair.second);
-    }
 
+    for (const auto& pair : enum_map_) {
+      private_nh_.setParam(f0r_types_.at(pair.first), pair.second);
+    }
 #if 0
     std::map<std::string, bool> bad_frei0rs;
     bad_frei0rs["/usr/lib/frei0r-1/curves.so"] = true;
@@ -128,7 +144,20 @@ struct Selector
     }
 #endif
 
-    ddr_->publishServicesTopics();
+    return true;
+  }
+
+  bool getPluginsFromParam()
+  {
+    for (const auto& pair : enum_map_) {
+      std::map<std::string, std::string> frei0r_locations;
+      const std::string name = f0r_types_.at(pair.first);
+      private_nh_.getParam(name, frei0r_locations);
+      for (const auto& pair2 : frei0r_locations) {
+        enum_map_[pair.first][pair2.first] = pair2.second;
+      }
+    }
+    return true;
   }
 
   void select(const std::string plugin_path)
@@ -136,8 +165,6 @@ struct Selector
     LoadPlugin srv;
     srv.request.plugin_path = plugin_path;
     if (!load_client_.waitForExistence(ros::Duration(0.1))) {
-      ROS_ERROR_STREAM("no service yet");
-      return;
     }
     load_client_.call(srv);
   }
