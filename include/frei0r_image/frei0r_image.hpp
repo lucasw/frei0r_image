@@ -27,6 +27,7 @@
 namespace frei0r_image
 {
 
+std::string sanitize(const std::string& text);
 void adjustWidthHeight(unsigned int& width, unsigned int& height);
 
 typedef int  (*f0r_init_t)();
@@ -196,7 +197,7 @@ private:
   // std::map<int, std::map<std::string, std::shared_ptr<Frei0rImage>>> plugins_;
 
   unsigned int new_width_ = 320;
-  unsigned int new_height_ = 200;
+  unsigned int new_height_ = 240;
 
   std::unique_ptr<Plugin> plugin_;
 };

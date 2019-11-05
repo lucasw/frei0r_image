@@ -29,7 +29,7 @@ bool getPluginInfo(const std::string& name, std::string& plugin_name, int& plugi
   }
   f0r_plugin_info_t info;
   get_plugin_info(&info);
-  plugin_name = info.name;
+  plugin_name = sanitize(info.name);
   plugin_type = info.plugin_type;
   dlclose(handle);
   return true;
