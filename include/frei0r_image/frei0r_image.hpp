@@ -84,6 +84,30 @@ struct Instance
     set_param_value(instance_, reinterpret_cast<f0r_param_t>(&value), ind);
   }
 
+  void setColorR(const double r, const int ind)
+  {
+    f0r_param_color_t color;
+    get_param_value(instance_, reinterpret_cast<f0r_param_t>(&color), ind);
+    color.r = r;
+    set_param_value(instance_, reinterpret_cast<f0r_param_t>(&color), ind);
+  }
+
+  void setColorG(const double g, const int ind)
+  {
+    f0r_param_color_t color;
+    get_param_value(instance_, reinterpret_cast<f0r_param_t>(&color), ind);
+    color.g = g;
+    set_param_value(instance_, reinterpret_cast<f0r_param_t>(&color), ind);
+  }
+
+  void setColorB(const double b, const int ind)
+  {
+    f0r_param_color_t color;
+    get_param_value(instance_, reinterpret_cast<f0r_param_t>(&color), ind);
+    color.b = b;
+    set_param_value(instance_, reinterpret_cast<f0r_param_t>(&color), ind);
+  }
+
   void setPositionX(const double x, const int ind)
   {
     f0r_param_position_t pos;
@@ -100,6 +124,11 @@ struct Instance
     set_param_value(instance_, reinterpret_cast<f0r_param_t>(&pos), ind);
   }
 
+  void setString(std::string text, const int ind)
+  {
+    set_param_value(instance_, reinterpret_cast<f0r_param_t>(&*text.begin()), ind);
+  }
+
   f0r_construct_t construct = nullptr;
   f0r_destruct_t destruct = nullptr;
   f0r_update_t update1 = nullptr;
@@ -110,8 +139,12 @@ struct Instance
 
   std::map<int, bool> update_bools_;
   std::map<int, double> update_doubles_;
+  std::map<int, double> update_color_r_;
+  std::map<int, double> update_color_g_;
+  std::map<int, double> update_color_b_;
   std::map<int, double> update_position_x_;
   std::map<int, double> update_position_y_;
+  std::map<int, std::string> update_string_;
   void getValues();
   f0r_plugin_info fi_;
 
@@ -175,8 +208,12 @@ public:
   void heightCallback(int height);
   void boolCallback(bool value, int param_ind);
   void doubleCallback(double value, int param_ind);
-  void colorXCallback(double value, int param_ind);
-  void colorYCallback(double value, int param_ind);
+  void positionXCallback(double value, int param_ind);
+  void positionYCallback(double value, int param_ind);
+  void colorRCallback(double value, int param_ind);
+  void colorGCallback(double value, int param_ind);
+  void colorBCallback(double value, int param_ind);
+  void stringCallback(const std::string value, int param_ind);
 
   void selectPlugin(std::string plugin_name);
 

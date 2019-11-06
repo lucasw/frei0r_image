@@ -208,20 +208,32 @@ bool Frei0rImage::setupPlugin(const std::string& plugin_name)
       }
       case (F0R_PARAM_COLOR): {
         ROS_INFO_STREAM(i << " color '" << param_name << "'");
+        ddr_->registerVariable<double>(param_name + "_r", 0.5,
+            boost::bind(&Frei0rImage::colorRCallback, this, _1, i),
+            info.explanation, 0.0, 1.0);
+        ddr_->registerVariable<double>(param_name + "_g", 0.5,
+            boost::bind(&Frei0rImage::colorGCallback, this, _1, i),
+            info.explanation, 0.0, 1.0);
+        ddr_->registerVariable<double>(param_name + "_b", 0.5,
+            boost::bind(&Frei0rImage::colorBCallback, this, _1, i),
+            info.explanation, 0.0, 1.0);
         break;
       }
       case (F0R_PARAM_POSITION): {
         ROS_INFO_STREAM(i << " position '" << param_name << "'");
         ddr_->registerVariable<double>(param_name + "_x", 0.5,
-            boost::bind(&Frei0rImage::colorXCallback, this, _1, i),
+            boost::bind(&Frei0rImage::positionXCallback, this, _1, i),
             info.explanation, 0.0, 1.0);
         ddr_->registerVariable<double>(param_name + "_y", 0.5,
-            boost::bind(&Frei0rImage::colorYCallback, this, _1, i),
+            boost::bind(&Frei0rImage::positionYCallback, this, _1, i),
             info.explanation, 0.0, 1.0);
         break;
       }
       case (F0R_PARAM_STRING): {
         ROS_INFO_STREAM(i << " string '" << param_name << "'");
+        ddr_->registerVariable<std::string>(param_name, "",
+            boost::bind(&Frei0rImage::stringCallback, this, _1, i),
+            info.explanation);
         break;
       }
     }
@@ -308,7 +320,31 @@ void Frei0rImage::doubleCallback(double value, int param_ind)
   plugin_->instance_->update_doubles_[param_ind] = value;
 }
 
-void Frei0rImage::colorXCallback(double value, int param_ind)
+void Frei0rImage::colorRCallback(double value, int param_ind)
+{
+  if ((!plugin_) || (!plugin_->instance_)) {
+    return;
+  }
+  plugin_->instance_->update_color_r_[param_ind] = value;
+}
+
+void Frei0rImage::colorGCallback(double value, int param_ind)
+{
+  if ((!plugin_) || (!plugin_->instance_)) {
+    return;
+  }
+  plugin_->instance_->update_color_g_[param_ind] = value;
+}
+
+void Frei0rImage::colorBCallback(double value, int param_ind)
+{
+  if ((!plugin_) || (!plugin_->instance_)) {
+    return;
+  }
+  plugin_->instance_->update_color_b_[param_ind] = value;
+}
+
+void Frei0rImage::positionXCallback(double value, int param_ind)
 {
   if ((!plugin_) || (!plugin_->instance_)) {
     return;
@@ -316,12 +352,20 @@ void Frei0rImage::colorXCallback(double value, int param_ind)
   plugin_->instance_->update_position_x_[param_ind] = value;
 }
 
-void Frei0rImage::colorYCallback(double value, int param_ind)
+void Frei0rImage::positionYCallback(double value, int param_ind)
 {
   if ((!plugin_) || (!plugin_->instance_)) {
     return;
   }
   plugin_->instance_->update_position_y_[param_ind] = value;
+}
+
+void Frei0rImage::stringCallback(const std::string value, int param_ind)
+{
+  if ((!plugin_) || (!plugin_->instance_)) {
+    return;
+  }
+  plugin_->instance_->update_string_[param_ind] = value;
 }
 
 void Plugin::print()
@@ -480,6 +524,23 @@ void Instance::updateParams()
   }
   update_doubles_.clear();
 
+  // color
+  for (auto& pair : update_color_r_) {
+    setColorR(pair.second, pair.first);
+  }
+  update_color_r_.clear();
+
+  for (auto& pair : update_color_g_) {
+    setColorG(pair.second, pair.first);
+  }
+  update_color_g_.clear();
+
+  for (auto& pair : update_color_b_) {
+    setColorB(pair.second, pair.first);
+  }
+  update_color_b_.clear();
+
+  // position
   for (auto& pair : update_position_x_) {
     setPositionX(pair.second, pair.first);
   }
@@ -489,6 +550,11 @@ void Instance::updateParams()
     setPositionY(pair.second, pair.first);
   }
   update_position_y_.clear();
+
+  for (auto& pair : update_string_) {
+    setString(pair.second, pair.first);
+  }
+  update_string_.clear();
 }
 
 #if 0
