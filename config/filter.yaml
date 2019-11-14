@@ -13,12 +13,14 @@ filter: {
   # Took 100% cpu and couldn't switch out of it
   # Curves: /usr/lib/frei0r-1/curves.so,
   Defish0r: /usr/lib/frei0r-1/defish0r.so,
+  # Circular fixed delay- parameters to change this would be nice
+  # (also make a generalized per-pixel delay map in image_manip)
   Delaygrab: /usr/lib/frei0r-1/delaygrab.so,
   Distort0r: /usr/lib/frei0r-1/distort0r.so,
   Edgeglow: /usr/lib/frei0r-1/edgeglow.so,
   Equaliz0r: /usr/lib/frei0r-1/equaliz0r.so,
   # cv exception
-  FaceBl0r: /usr/lib/frei0r-1/facebl0r.so,
+  # FaceBl0r: /usr/lib/frei0r-1/facebl0r.so,
   Flippo: /usr/lib/frei0r-1/flippo.so,
   G: /usr/lib/frei0r-1/G.so,
   Gamma: /usr/lib/frei0r-1/gamma.so,
@@ -29,11 +31,11 @@ filter: {
   Invert0r: /usr/lib/frei0r-1/invert0r.so,
   K-Means Clustering: /usr/lib/frei0r-1/cluster.so,
   Lens Correction: /usr/lib/frei0r-1/lenscorrection.so,
-  LetterB0xed: /usr/lib/frei0r-1/letterb0xed.so,
+  # LetterB0xed: /usr/lib/frei0r-1/letterb0xed.so,
   # Shows box with levels in it
   # Levels: /usr/lib/frei0r-1/levels.so,
   Light Graffiti: /usr/lib/frei0r-1/lightgraffiti.so,
-  Luminance: /usr/lib/frei0r-1/luminance.so,
+  # Luminance: /usr/lib/frei0r-1/luminance.so,
   Mask0Mate: /usr/lib/frei0r-1/mask0mate.so,
   Medians: /usr/lib/frei0r-1/medians.so,
   NDVI filter: /usr/lib/frei0r-1/ndvi.so,
@@ -42,6 +44,7 @@ filter: {
   Nikon D90 Stairstepping fix: /usr/lib/frei0r-1/d90stairsteppingfix.so,
   Perspective: /usr/lib/frei0r-1/perspective.so,
   R: /usr/lib/frei0r-1/R.so,
+  # TODO(lucasw) make the lines and values optional
   RGB-Parade: /usr/lib/frei0r-1/rgbparade.so,
   SOP_Sat: /usr/lib/frei0r-1/sopsat.so,
   Saturat0r: /usr/lib/frei0r-1/saturat0r.so,
