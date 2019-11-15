@@ -10,6 +10,7 @@
   </node>
 
   <node name="image_source" pkg="usb_cam" type="usb_cam_node"
+      if="false"
       output="screen">
     <param name="image_width" value="320"/>
     <param name="image_height" value="240"/>
@@ -76,6 +77,15 @@
   <!-- launch rqt -->
   <node name="rqt_traj" pkg="rqt_gui" type="rqt_gui"
     args="--perspective-file $(find frei0r_image)/config/frei0r.perspective"
+    if="false"
     output="screen" >
   </node>
+
+  <node pkg="imgui_ros" type="imgui_ros_node"
+    name="imgui_ros" output="screen" >
+  </node>
+
+  <node pkg="frei0r_image" type="demo.py" name="demo" output="screen">
+  </node>
+
 </launch>
