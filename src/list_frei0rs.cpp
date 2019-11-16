@@ -37,7 +37,7 @@ int main(int argc, char** argv)
     try {
       for (const auto& entry : std::experimental::filesystem::directory_iterator(dir)) {
         plugin_names.push_back(entry.path());
-        // std::cout << entry.path() << "\n";
+        ROS_INFO_STREAM(entry.path());
       }
     } catch (std::experimental::filesystem::v1::__cxx11::filesystem_error& ex) {
       std::cout << dir << " " << ex.what() << "\n";

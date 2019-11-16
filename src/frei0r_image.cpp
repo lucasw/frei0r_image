@@ -158,18 +158,18 @@ bool Frei0rImage::setupPlugin(const std::string& plugin_name)
   try {
     plugin = std::make_unique<Plugin>(plugin_name);
   } catch (std::runtime_error& ex) {
-    ROS_ERROR_STREAM(ex.what());
+    ROS_ERROR_STREAM(ex.what() << " '" << plugin_name << "'");
     return false;
   }
   ROS_INFO_STREAM(plugin_name);
   if (!plugin) {
-    ROS_ERROR_STREAM("no plugin " << plugin_name);
+    ROS_ERROR_STREAM("no plugin: '" << plugin_name << "'");
     return false;
   }
 
   plugin->makeInstance(new_width_, new_height_);
   if (!plugin->instance_) {
-    ROS_ERROR_STREAM("no instance " << plugin_name);
+    ROS_ERROR_STREAM("no instance for '" << plugin_name << "'");
     return false;
   }
 
