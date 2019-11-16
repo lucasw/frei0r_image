@@ -36,9 +36,9 @@ class DemoGui:
 
         self.add_images()
         self.add_dr("manip", ["/mix_images"], x=200.0)
-        self.add_dr("frei0r", ["/frei0r0", "/frei0r0/selector",
-                               # "/frei0r1", "/frei0r1/selector",
-                               # "/frei0r2", "/frei0r2/selector",
+        self.add_dr("frei0r", ["/frei0r0/frei0r", "/frei0r0/selector",
+                               # "/frei0r1/frei0r", "/frei0r1/selector",
+                               # "/frei0r2/frei0r", "/frei0r2/selector",
                                ],
                     x=400.0)
 
