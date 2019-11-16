@@ -36,11 +36,10 @@ class DemoGui:
 
         self.add_images()
         self.add_dr("manip", ["/mix_images"], x=200.0)
-        self.add_dr("frei0r", ["/frei0r0/frei0r", "/frei0r0/selector",
-                               # "/frei0r1/frei0r", "/frei0r1/selector",
-                               # "/frei0r2/frei0r", "/frei0r2/selector",
-                               ],
-                    x=400.0)
+        self.add_dr("roto_zoom0", ["/roto_zoom0"], x=200.0)
+        self.add_dr("frei0r0", ["/frei0r0/frei0r", "/frei0r0/selector"], x=400.0)
+        self.add_dr("frei0r1", ["/frei0r1/frei0r", "/frei0r1/selector"], x=500.0)
+        self.add_dr("frei0r2", ["/frei0r2/frei0r", "/frei0r2/selector"], x=600.0)
 
     def add_dr(self, name, servers, x=0.0, y=0.0, width=300.0, height=600.0):
         req = AddWindowRequest()
