@@ -1,10 +1,10 @@
 source: {
+  none: none,
   Ising0r: /usr/lib/frei0r-1/ising0r.so,
   Lissajous0r: /usr/lib/frei0r-1/lissajous0r.so,
   Nois0r: /usr/lib/frei0r-1/nois0r.so,
   Partik0l: /usr/lib/frei0r-1/partik0l.so,
   Plasma: /usr/lib/frei0r-1/plasma.so,
-  none: none,
   onecol0r: /usr/lib/frei0r-1/onecol0r.so,
   test_pat_B: /usr/lib/frei0r-1/test_pat_B.so,
   test_pat_C: /usr/lib/frei0r-1/test_pat_C.so,

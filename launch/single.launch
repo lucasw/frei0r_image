@@ -5,6 +5,7 @@
   <arg name="image_in2" default="image_in2" />
   <arg name="image_out" default="image_out" />
   <arg name="nodelet_manager" default="manager" />
+  <arg name="config_dir" default="$(find frei0r_image)/config" />
 
   <node name="frei0r" pkg="nodelet" type="nodelet"
     args="load frei0r_image/Frei0rImage $(arg nodelet_manager)"
@@ -18,10 +19,10 @@
   <node name="selector" pkg="frei0r_image" type="select_plugin"
     output="screen">
     <param name="load_from_path" value="false" />
-    <rosparam command="load" file="$(find frei0r_image)/config/source.yaml" />
-    <rosparam command="load" file="$(find frei0r_image)/config/filter.yaml" />
-    <rosparam command="load" file="$(find frei0r_image)/config/mixer2.yaml" />
-    <rosparam command="load" file="$(find frei0r_image)/config/mixer3.yaml" />
+    <rosparam command="load" file="$(arg config_dir)/source.yaml" />
+    <rosparam command="load" file="$(arg config_dir)/filter.yaml" />
+    <rosparam command="load" file="$(arg config_dir)/mixer2.yaml" />
+    <rosparam command="load" file="$(arg config_dir)/mixer3.yaml" />
     <remap from="load_plugin" to="frei0r/load_plugin" />
   </node>
 </launch>

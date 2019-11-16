@@ -1,4 +1,5 @@
 mixer2: {
+  none: none,
   Alpha Injection: /usr/lib/frei0r-1/alphainjection.so,
   Composition: /usr/lib/frei0r-1/composition.so,
   UV Map: /usr/lib/frei0r-1/uvmap.so,
@@ -24,7 +25,6 @@ mixer2: {
   hue: /usr/lib/frei0r-1/hue.so,
   lighten: /usr/lib/frei0r-1/lighten.so,
   multiply: /usr/lib/frei0r-1/multiply.so,
-  none: none,
   overlay: /usr/lib/frei0r-1/overlay.so,
   saturation: /usr/lib/frei0r-1/saturation.so,
   screen: /usr/lib/frei0r-1/screen.so,
