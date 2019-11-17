@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
 <launch>
+  <arg name="width" default="1024" />
+  <arg name="height" default="1024" />
   <arg name="image_in0" default="image_in0" />
   <arg name="image_in1" default="image_in1" />
   <arg name="image_in2" default="image_in2" />
@@ -11,6 +13,8 @@
     args="load frei0r_image/Frei0rImage $(arg nodelet_manager)"
     output="screen" >
     <!--param name="path" value="$(env HOME)/other/install/lib/frei0r-1" /-->
+    <param name="width" value="$(arg width)" />
+    <param name="height" value="$(arg height)" />
     <remap from="image_in0" to="$(arg image_in0)" />
     <remap from="image_in1" to="$(arg image_in1)" />
     <remap from="image_in2" to="$(arg image_in2)" />

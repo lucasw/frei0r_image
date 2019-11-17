@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
 <launch>
   <arg name="device" default="0" />
+  <arg name="width" default="1024" />
+  <arg name="height" default="1024" />
   <arg name="config_dir" default="$(find frei0r_image)/config" />
 
   <node pkg="image_publisher" type="image_publisher"
@@ -39,6 +41,8 @@
 
   <group ns="frei0r0">
     <include file="$(find frei0r_image)/launch/single.launch" >
+      <arg name="width" value="$(arg width)" />
+      <arg name="height" value="$(arg height)" />
       <arg name="image_in0" value="/mix/image" />
       <arg name="image_in1" value="/frei0r2/image_out" />
       <arg name="image_in2" value="/frei0r1/image_out" />
@@ -49,6 +53,8 @@
   </group>
   <group ns="frei0r1">
     <include file="$(find frei0r_image)/launch/single.launch" >
+      <arg name="width" value="$(arg width)" />
+      <arg name="height" value="$(arg height)" />
       <arg name="image_in0" value="/frei0r0/image_out" />
       <arg name="image_in1" value="/frei0r2/image_out" />
       <arg name="image_in2" value="image_in2" />
@@ -59,6 +65,8 @@
   </group>
   <group ns="frei0r2">
     <include file="$(find frei0r_image)/launch/single.launch" >
+      <arg name="width" value="$(arg width)" />
+      <arg name="height" value="$(arg height)" />
       <arg name="image_in0" value="/frei0r1/image_out" />
       <arg name="image_in1" value="/frei0r0/image_out" />
       <arg name="image_in2" value="image_in2" />

@@ -176,8 +176,15 @@ bool Frei0rImage::setupPlugin(const std::string& plugin_name)
   plugin_ = std::move(plugin);
 
   ddr_ = std::make_unique<ddynamic_reconfigure::DDynamicReconfigure>(getPrivateNodeHandle());
+  // These callbacks don't fire automatically on init, so have to read the params
+  int width = 320;
+  getPrivateNodeHandle().getParam("width", width);
+  new_width_ = width;
   ddr_->registerVariable<int>("width", 320,
       boost::bind(&Frei0rImage::widthCallback, this, _1), "width", 8, 2048);
+  int height = 240;
+  getPrivateNodeHandle().getParam("height", height);
+  new_height_ = height;
   ddr_->registerVariable<int>("height", 240,
       boost::bind(&Frei0rImage::heightCallback, this, _1), "height", 8, 2048);
 
@@ -427,7 +434,7 @@ Instance::Instance(unsigned int& width, unsigned int& height,
   set_param_value(set_param_value)
 {
   adjustWidthHeight(width, height);
-  ROS_INFO_STREAM(width << " x " << height);
+  ROS_INFO_STREAM("width " << width << " x height " << height);
 
   {
     width_ = width;
