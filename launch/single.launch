@@ -21,12 +21,25 @@
     <remap from="image_out" to="$(arg image_out)" />
   </node>
   <node name="selector" pkg="frei0r_image" type="select_plugin"
-    output="screen">
+    output="screen" >
     <param name="load_from_path" value="false" />
     <rosparam command="load" file="$(arg config_dir)/source.yaml" />
     <rosparam command="load" file="$(arg config_dir)/filter.yaml" />
     <rosparam command="load" file="$(arg config_dir)/mixer2.yaml" />
     <rosparam command="load" file="$(arg config_dir)/mixer3.yaml" />
     <remap from="load_plugin" to="frei0r/load_plugin" />
+  </node>
+
+  <node name="siggen1" pkg="signal_generator" type="signal_generator.py"
+    output="screen" >
+    <remap from="signal" to="signal1" />
+    <!--param name="server" value="frei0r" />
+    <param name="param" value="1" /-->
+  </node>
+  <node name="siggen2" pkg="signal_generator" type="signal_generator.py"
+    output="screen" >
+    <remap from="signal" to="signal2" />
+    <!--param name="server" value="frei0r" />
+    <param name="param" value="2" /-->
   </node>
 </launch>

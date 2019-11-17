@@ -32,15 +32,21 @@ class DemoGui:
 
     def run(self, namespace=''):
         rospy.wait_for_service(namespace + '/add_window')
-        self.cli = rospy.ServiceProxy(namespace + '/add_window', AddWindow)
+        self.win_srv_name = namespace + '/add_window'
+        self.cli = rospy.ServiceProxy(self.win_srv_name, AddWindow)
 
         self.add_images()
-        self.add_dr("manip", ["/mix_images"], x=250.0, y=500.0)
-        self.add_dr("roto_zoom0", ["/roto_zoom0"], x=500.0, y=500.0)
-        self.add_dr("frei0r0", ["/frei0r0/frei0r", "/frei0r0/selector"], x=400.0)
-        self.add_dr("frei0r1", ["/frei0r1/frei0r", "/frei0r1/selector"], x=800.0)
-        self.add_dr("frei0r2", ["/frei0r2/frei0r", "/frei0r2/selector"], x=1200.0)
-        self.add_dr("siggen", ["/signal_generator"], x=750.0, y=500.0)
+        self.add_dr("manip", ["/mix_images"], x=0.0, y=500.0, height=500.0)
+        self.add_dr("roto_zoom0", ["/roto_zoom0"], x=300.0, y=500.0, height=500.0)
+        for i in range(3):
+            name = "frei0r" + str(i)
+            ns = "/" + name
+            servers = [ns + "/selector",
+                       ns + "/siggen1",
+                       ns + "/siggen2",
+                       ns + "/frei0r",
+                       ]
+            self.add_dr(name, servers, x=10.0 + i * 300, height=500.0)
 
     def add_dr(self, name, servers, x=0.0, y=0.0, width=300.0, height=600.0):
         req = AddWindowRequest()
@@ -69,7 +75,7 @@ class DemoGui:
             resp = self.cli(req)
             rospy.loginfo(resp)
         except rospy.service.ServiceException as e:
-            rospy.logerr(e)
+            rospy.logerr(self.win_srv_name + " " + e)
 
     def add_images(self):
         req = AddWindowRequest()
@@ -83,10 +89,10 @@ class DemoGui:
             req.size.x = 0.5
             req.size.y = 0.5
         else:
-            req.position.x = 100.0
+            req.position.x = 900.0
             req.position.y = 0.0
-            req.size.x = 300.0
-            req.size.y = 400.0
+            req.size.x = 400.0
+            req.size.y = 800.0
         tab_name = 'images'
 
         if True:
