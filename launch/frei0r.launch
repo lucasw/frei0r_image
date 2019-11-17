@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
 <launch>
   <arg name="device" default="0" />
-  <arg name="width" default="1024" />
-  <arg name="height" default="1024" />
+  <arg name="width" default="640" />
+  <arg name="height" default="360" />
   <arg name="config_dir" default="$(find frei0r_image)/config" />
 
   <node pkg="image_publisher" type="image_publisher"
@@ -13,7 +13,7 @@
   </node>
 
   <node name="image_source" pkg="usb_cam" type="usb_cam_node"
-      if="false"
+      if="true"
       output="screen">
     <param name="image_width" value="320"/>
     <param name="image_height" value="240"/>
@@ -22,6 +22,13 @@
     <!--param name="pixel_format" value="mjpeg" /-->
     <param name="pixel_format" value="yuyv"/>
   </node>
+  <group ns="image_source/image_raw">
+    <rosparam param="disable_pub_plugins">
+      - 'image_transport/compressed'
+      - 'image_transport/compressedDepth'
+      - 'image_transport/theora'
+    </rosparam>
+  </group>
 
   <node pkg="nodelet" type="nodelet" name="manager" args="manager"
     output="screen"/>
@@ -67,7 +74,7 @@
     <include file="$(find frei0r_image)/launch/single.launch" >
       <arg name="width" value="$(arg width)" />
       <arg name="height" value="$(arg height)" />
-      <arg name="image_in0" value="/frei0r1/image_out" />
+      <arg name="image_in0" value="/image_source/image_raw" />
       <arg name="image_in1" value="/frei0r0/image_out" />
       <arg name="image_in2" value="image_in2" />
       <arg name="image_out" value="image_out" />

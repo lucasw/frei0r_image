@@ -22,6 +22,7 @@
 #include <vector>
 #include <ros/ros.h>
 #include <sensor_msgs/Image.h>
+#include <std_msgs/Float32.h>
 #include <string>
 
 namespace frei0r_image
@@ -207,7 +208,10 @@ public:
   void widthCallback(int width);
   void heightCallback(int height);
   void boolCallback(bool value, int param_ind);
+
   void doubleCallback(double value, int param_ind);
+  void doubleMsgCallback(std_msgs::Float32::ConstPtr msg, int param_ind);
+
   void positionXCallback(double value, int param_ind);
   void positionYCallback(double value, int param_ind);
   void colorRCallback(double value, int param_ind);
@@ -226,6 +230,7 @@ private:
   ros::Timer timer_;
   std::unique_ptr<ddynamic_reconfigure::DDynamicReconfigure> ddr_;
   // std::unique_ptr<ddynamic_reconfigure::DDynamicReconfigure> select_plugin_ddr_;
+  std::map<std::string, ros::Subscriber> param_subs_;
 
   ros::ServiceServer load_plugin_srv_;
   bool loadPlugin(LoadPlugin::Request& req, LoadPlugin::Response& resp);

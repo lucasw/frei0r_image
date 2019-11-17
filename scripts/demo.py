@@ -95,7 +95,7 @@ class DemoGui:
             req.size.y = 800.0
         tab_name = 'images'
 
-        if True:
+        if False:
             widget = Widget()
             widget.name = "image pub"
             widget.tab_name = tab_name
@@ -106,6 +106,8 @@ class DemoGui:
 
         # TODO(lucasw) parse the node graph and displaying all image outputs
         # instead of hardcoding.
+        widget = image_sub_widget("usb", tab_name, "/image_source/image_raw")
+        req.widgets.append(widget)
         for ind in range(3):
             widget = image_sub_widget("image sub {}".format(ind),
                                       tab_name,

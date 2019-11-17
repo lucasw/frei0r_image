@@ -188,6 +188,8 @@ bool Frei0rImage::setupPlugin(const std::string& plugin_name)
   ddr_->registerVariable<int>("height", 240,
       boost::bind(&Frei0rImage::heightCallback, this, _1), "height", 8, 2048);
 
+  param_subs_.clear();
+
   for (int i = 0; i < plugin_->fi_.num_params; ++i) {
     // TODO(lucasw) create a control for each parameter
     f0r_param_info_t info;
@@ -211,6 +213,9 @@ bool Frei0rImage::setupPlugin(const std::string& plugin_name)
         ddr_->registerVariable<double>(param_name, 0.5,
             boost::bind(&Frei0rImage::doubleCallback, this, _1, i),
             info.explanation, 0.0, 1.0);
+        param_subs_[param_name] = getPrivateNodeHandle().subscribe<std_msgs::Float32>(
+            param_name, 3,
+            boost::bind(&Frei0rImage::doubleMsgCallback, this, _1, i));
         break;
       }
       case (F0R_PARAM_COLOR): {
@@ -218,9 +223,11 @@ bool Frei0rImage::setupPlugin(const std::string& plugin_name)
         ddr_->registerVariable<double>(param_name + "_r", 0.5,
             boost::bind(&Frei0rImage::colorRCallback, this, _1, i),
             info.explanation, 0.0, 1.0);
+
         ddr_->registerVariable<double>(param_name + "_g", 0.5,
             boost::bind(&Frei0rImage::colorGCallback, this, _1, i),
             info.explanation, 0.0, 1.0);
+
         ddr_->registerVariable<double>(param_name + "_b", 0.5,
             boost::bind(&Frei0rImage::colorBCallback, this, _1, i),
             info.explanation, 0.0, 1.0);
@@ -325,6 +332,11 @@ void Frei0rImage::doubleCallback(double value, int param_ind)
     return;
   }
   plugin_->instance_->update_doubles_[param_ind] = value;
+}
+
+void Frei0rImage::doubleMsgCallback(std_msgs::Float32::ConstPtr msg, int param_ind)
+{
+  doubleCallback(msg->data, param_ind);
 }
 
 void Frei0rImage::colorRCallback(double value, int param_ind)
