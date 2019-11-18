@@ -32,13 +32,13 @@
 
   <node name="siggen1" pkg="signal_generator" type="signal_generator.py"
     output="screen" >
-    <remap from="signal" to="signal1" />
+    <param name="topic" value="signal1" />
     <!--param name="server" value="frei0r" />
     <param name="param" value="1" /-->
   </node>
   <node name="siggen2" pkg="signal_generator" type="signal_generator.py"
     output="screen" >
-    <remap from="signal" to="signal2" />
+    <param name="topic" value="signal2" />
     <!--param name="server" value="frei0r" />
     <param name="param" value="2" /-->
   </node>

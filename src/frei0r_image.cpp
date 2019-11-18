@@ -523,6 +523,9 @@ void Frei0rImage::update(const ros::TimerEvent& event)
     plugin_->makeInstance(new_width_, new_height_);
   }
 
+  // TODO(lucasw) need to call updateConfig to update dynamic reconfigure
+  // clients with new values that have arrived via topics.
+
   plugin_->instance_->updateParams();
   plugin_->instance_->update(event.current_real);
 
