@@ -33,9 +33,12 @@ class DemoGui:
     def run(self, namespace=''):
         rospy.wait_for_service(namespace + '/add_window')
         self.win_srv_name = namespace + '/add_window'
+
+        rospy.wait_for_service(self.win_srv_name, timeout=4.0)
         self.cli = rospy.ServiceProxy(self.win_srv_name, AddWindow)
 
-        self.add_images()
+        use_image_source = rospy.get_param("~use_image_source", False)
+        self.add_images(use_image_source)
         self.add_dr("manip", ["/mix_images"], x=0.0, y=500.0, height=500.0)
         self.add_dr("roto_zoom0", ["/roto_zoom0"], x=300.0, y=500.0, height=500.0)
         for i in range(3):
@@ -75,9 +78,9 @@ class DemoGui:
             resp = self.cli(req)
             rospy.loginfo(resp)
         except rospy.service.ServiceException as e:
-            rospy.logerr(self.win_srv_name + " " + e)
+            rospy.logerr(self.win_srv_name + " " + str(e))
 
-    def add_images(self):
+    def add_images(self, use_image_source=False):
         req = AddWindowRequest()
         req.name = 'images'
         req.init = True
@@ -95,7 +98,7 @@ class DemoGui:
             req.size.y = 800.0
         tab_name = 'images'
 
-        if False:
+        if use_image_source:
             widget = Widget()
             widget.name = "image pub"
             widget.tab_name = tab_name
