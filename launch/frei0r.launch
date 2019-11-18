@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
 <launch>
   <arg name="device" default="0" />
+  <arg name="use_usb_cam" default="true" />
   <arg name="width" default="640" />
   <arg name="height" default="360" />
   <arg name="config_dir" default="$(find frei0r_image)/config" />
@@ -13,7 +14,7 @@
   </node>
 
   <node name="image_source" pkg="usb_cam" type="usb_cam_node"
-      if="true"
+      if="$(arg use_usb_cam)"
       output="screen">
     <param name="image_width" value="320"/>
     <param name="image_height" value="240"/>
@@ -107,6 +108,7 @@
   </node>
 
   <node pkg="frei0r_image" type="demo.py" name="demo" output="screen">
+    <param name="use_image_source" value="true" unless="$(arg use_usb_cam)" />
   </node>
 
 </launch>
