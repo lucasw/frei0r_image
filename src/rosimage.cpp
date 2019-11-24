@@ -18,10 +18,10 @@
  */
 
 #include <assert.h>
-// #include <cv_bridge/cv_bridge.h>
+#include <cv_bridge/cv_bridge.h>
 #include <iostream>
-// #include <ros/ros.h>
-// #include <sensor_msgs/Image.h>
+#include <ros/ros.h>
+#include <sensor_msgs/Image.h>
 #include <stdlib.h>
 
 extern "C" {
@@ -33,7 +33,6 @@ typedef struct rosimage_instance {
   unsigned int height_;
   std::string topic_ = "image";
 
-#if 0
   ros::NodeHandle nh_;
   ros::Subscriber sub_;
   cv::Mat image_in_;
@@ -50,7 +49,6 @@ typedef struct rosimage_instance {
     cv::resize(cv_ptr->image, image_in_,
         cv::Size(width_, height_), cv::INTER_NEAREST);
   }
-#endif
 } rosimage_instance_t;
 
 /* Clamps a int32-range int between 0 and 255 inclusive. */
@@ -62,9 +60,8 @@ unsigned char CLAMP0255(int32_t a) {
 
 int f0r_init() {
   int argc = 0;
-  // ros::init(argc, nullptr, "frei0r", ros::init_options::AnonymousName);
-  // ROS_INFO_STREAM("rosimage init " << ros::this_node::getName());
-  std::cout << "init\n";
+  ros::init(argc, nullptr, "frei0r", ros::init_options::AnonymousName);
+  ROS_INFO_STREAM("rosimage init " << ros::this_node::getName());
   return 1;
 }
 
@@ -100,15 +97,11 @@ f0r_instance_t f0r_construct(unsigned int width, unsigned int height) {
   inst->width_ = width;
   inst->height_ = height;
 
-  std::cout << "construct " << width << " " << height << " "
-      << inst->topic_ << "\n";
-#if 0
   ROS_INFO_STREAM("rosimage construct " << ros::this_node::getName() << " "
       << width << " x " << height << " " << inst->topic_);
   inst->sub_ = inst->nh_.subscribe<sensor_msgs::Image>(inst->topic_, 3,
        &rosimage_instance::imageCallback, inst);
   ROS_INFO_STREAM("subscribed");
-#endif
   return (f0r_instance_t)inst;
 }
 
@@ -122,20 +115,18 @@ void f0r_set_param_value(f0r_instance_t instance, f0r_param_t param,
   assert(instance);
   rosimage_instance_t *inst = (rosimage_instance_t *)instance;
 
-  std::cout << inst->width_ << "\n";
-  // TODO(lucasw) clamp param to 0.0 - 1.0
-
   switch (param_index) {
   case 0:
-    // inst->topic_ = std::string(*(char**)param);
+    const std::string topic = std::string(*(char**)param);
     // inst->topic_ = (*(char**)(param));
     // std::cout << inst->topic_ << "\n";
-#if 0
-    ROS_INFO_STREAM("new topic " << inst->topic_);
-    inst->sub_.shutdown();
-    inst->sub_ = inst->nh_.subscribe<sensor_msgs::Image>(inst->topic_, 3,
-        &rosimage_instance::imageCallback, inst);
-#endif
+    if (topic != inst->topic_) {
+      inst->topic_ = topic;
+      ROS_INFO_STREAM("new topic " << inst->topic_);
+      inst->sub_.shutdown();
+      inst->sub_ = inst->nh_.subscribe<sensor_msgs::Image>(inst->topic_, 3,
+          &rosimage_instance::imageCallback, inst);
+    }
     break;
   }
 }
@@ -147,11 +138,9 @@ void f0r_get_param_value(f0r_instance_t instance, f0r_param_t param,
 
   switch (param_index) {
   case 0:
-#if 0
     ROS_INFO_STREAM("get param start");
-    *((f0r_param_string *)param) = "temp";  // const_cast<char*>(inst->topic_.data());
+    *((f0r_param_string *)param) = const_cast<char*>(inst->topic_.data());
     ROS_INFO_STREAM("get param done");
-#endif
     break;
   }
 }
@@ -163,9 +152,10 @@ void f0r_update(f0r_instance_t instance, double time, const uint32_t *inframe,
 
   unsigned char *dst = (unsigned char *)outframe;
 
-#if 0
-  ROS_INFO_STREAM("update");
+  ros::spinOnce();
+
   if (inst->image_in_.empty()) {
+    ROS_INFO_STREAM("blank image");
     inst->image_in_ = cv::Mat(cv::Size(inst->width_, inst->height_),
                               CV_8UC4, cv::Scalar(0, 0, 0, 0));
   }
@@ -180,5 +170,4 @@ void f0r_update(f0r_instance_t instance, double time, const uint32_t *inframe,
 
   const size_t num_bytes = inst->width_ * inst->height_ * 4;
   std::copy(&tmp.data[0], &tmp.data[0] + num_bytes, dst);
-#endif
 }
