@@ -95,13 +95,13 @@ void f0r_get_param_info(f0r_param_info_t *info, int param_index) {
 }
 
 f0r_instance_t f0r_construct(unsigned int width, unsigned int height) {
-  rosimage_instance_t *inst =
-      (rosimage_instance_t *)malloc(sizeof(rosimage_instance_t));
+  rosimage_instance_t *inst = new rosimage_instance;
 
   inst->width_ = width;
   inst->height_ = height;
 
-  std::cout << "construct " << width << " " << height << "\n";
+  std::cout << "construct " << width << " " << height << " "
+      << inst->topic_ << "\n";
 #if 0
   ROS_INFO_STREAM("rosimage construct " << ros::this_node::getName() << " "
       << width << " x " << height << " " << inst->topic_);
@@ -114,7 +114,7 @@ f0r_instance_t f0r_construct(unsigned int width, unsigned int height) {
 
 void f0r_destruct(f0r_instance_t instance) {
   std::cout << "destruct\n";
-  free(instance);
+  delete instance;
 }
 
 void f0r_set_param_value(f0r_instance_t instance, f0r_param_t param,
@@ -122,12 +122,14 @@ void f0r_set_param_value(f0r_instance_t instance, f0r_param_t param,
   assert(instance);
   rosimage_instance_t *inst = (rosimage_instance_t *)instance;
 
+  std::cout << inst->width_ << "\n";
   // TODO(lucasw) clamp param to 0.0 - 1.0
 
   switch (param_index) {
   case 0:
     // inst->topic_ = std::string(*(char**)param);
-    std::cout << std::string(*(char**)(param)) << "\n";
+    // inst->topic_ = (*(char**)(param));
+    // std::cout << inst->topic_ << "\n";
 #if 0
     ROS_INFO_STREAM("new topic " << inst->topic_);
     inst->sub_.shutdown();
