@@ -91,3 +91,10 @@ install(FILES
 #   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
 # )
 
+# the frei0r plugin
+add_library(rosimage MODULE src/rosimage.cpp)
+target_link_libraries(rosimage ${catkin_LIBRARIES})
+set_target_properties(rosimage PROPERTIES PREFIX "")
+# A frei0r plugin loader will need this directory, or manually copy this to an already
+# listed frei0r plugin dir
+install(TARGETS rosimage LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION})

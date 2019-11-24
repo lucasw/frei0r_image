@@ -3,7 +3,7 @@
   <arg name="device" default="0" />
   <arg name="use_usb_cam" default="true" />
   <arg name="width" default="640" />
-  <arg name="height" default="360" />
+  <arg name="height" default="480" />
   <arg name="config_dir" default="$(find frei0r_image)/config" />
 
   <node pkg="image_publisher" type="image_publisher"
@@ -63,7 +63,7 @@
     <include file="$(find frei0r_image)/launch/single.launch" >
       <arg name="width" value="$(arg width)" />
       <arg name="height" value="$(arg height)" />
-      <arg name="image_in0" value="/frei0r0/image_out" />
+      <arg name="image_in0" value="/image_source/image_raw" />
       <arg name="image_in1" value="/frei0r2/image_out" />
       <arg name="image_in2" value="image_in2" />
       <arg name="image_out" value="image_out" />

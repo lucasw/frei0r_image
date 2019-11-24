@@ -55,7 +55,8 @@ filter: {
   Squareblur: /usr/lib/frei0r-1/squareblur.so,
   TehRoxx0r: /usr/lib/frei0r-1/tehroxx0r.so,
   Threshold0r: /usr/lib/frei0r-1/threshold0r.so,
-  Timeout indicator: /usr/lib/frei0r-1/timeout.so,
+  # Crashes
+  # Timeout indicator: /usr/lib/frei0r-1/timeout.so,
   Tint0r: /usr/lib/frei0r-1/tint0r.so,
   Transparency: /usr/lib/frei0r-1/transparency.so,
   Twolay0r: /usr/lib/frei0r-1/twolay0r.so,
