@@ -1,5 +1,5 @@
 /* rosimage
- * binarymillenium 2007
+ * Copyright 2007 binarymillenium
  * This file is a Frei0r plugin.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -17,16 +17,18 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
+#include <algorithm>
 #include <assert.h>
 #include <cv_bridge/cv_bridge.h>
 #include <iostream>
 #include <ros/ros.h>
 #include <sensor_msgs/Image.h>
 #include <stdlib.h>
+#include <string>
 
-extern "C" {
-#include "frei0r.h"
-}
+// extern "C" {
+#include <frei0r.h>
+// }
 
 typedef struct rosimage_instance {
   unsigned int width_;
@@ -53,9 +55,9 @@ typedef struct rosimage_instance {
 
 /* Clamps a int32-range int between 0 and 255 inclusive. */
 unsigned char CLAMP0255(int32_t a) {
-  return (unsigned char)((((-a) >> 31) & a) // 0 if the number was negative
+  return (unsigned char)((((-a) >> 31) & a)  // 0 if the number was negative
                          | (255 - a) >>
-                               31); // -1 if the number was greater than 255
+                               31);  // -1 if the number was greater than 255
 }
 
 int f0r_init() {
@@ -107,17 +109,18 @@ f0r_instance_t f0r_construct(unsigned int width, unsigned int height) {
 
 void f0r_destruct(f0r_instance_t instance) {
   std::cout << "destruct\n";
-  delete instance;
+  rosimage_instance_t *inst = reinterpret_cast<rosimage_instance_t*>(instance);
+  delete inst;
 }
 
 void f0r_set_param_value(f0r_instance_t instance, f0r_param_t param,
                          int param_index) {
   assert(instance);
-  rosimage_instance_t *inst = (rosimage_instance_t *)instance;
+  rosimage_instance_t *inst = reinterpret_cast<rosimage_instance_t*>(instance);
 
   switch (param_index) {
   case 0:
-    const std::string topic = std::string(*(char**)param);
+    const std::string topic = std::string(*(reinterpret_cast<char**>(param)));
     // inst->topic_ = (*(char**)(param));
     // std::cout << inst->topic_ << "\n";
     if (topic != inst->topic_) {
@@ -134,12 +137,12 @@ void f0r_set_param_value(f0r_instance_t instance, f0r_param_t param,
 void f0r_get_param_value(f0r_instance_t instance, f0r_param_t param,
                          int param_index) {
   assert(instance);
-  rosimage_instance_t *inst = (rosimage_instance_t *)instance;
+  rosimage_instance_t *inst = reinterpret_cast<rosimage_instance_t*>(instance);
 
   switch (param_index) {
   case 0:
     ROS_INFO_STREAM("get param start");
-    *((f0r_param_string *)param) = const_cast<char*>(inst->topic_.data());
+    *(reinterpret_cast<f0r_param_string*>(param)) = const_cast<char*>(inst->topic_.data());
     ROS_INFO_STREAM("get param done");
     break;
   }
@@ -148,7 +151,7 @@ void f0r_get_param_value(f0r_instance_t instance, f0r_param_t param,
 void f0r_update(f0r_instance_t instance, double time, const uint32_t *inframe,
                 uint32_t *outframe) {
   assert(instance);
-  rosimage_instance_t *inst = (rosimage_instance_t *)instance;
+  rosimage_instance_t *inst = reinterpret_cast<rosimage_instance_t*>(instance);
 
   unsigned char *dst = (unsigned char *)outframe;
 

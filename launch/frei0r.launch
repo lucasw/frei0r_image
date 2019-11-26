@@ -7,9 +7,9 @@
   <arg name="config_dir" default="$(find frei0r_image)/config" />
 
   <node pkg="image_publisher" type="image_publisher"
-    name="image_pub"
+    name="image_source"
     args="$(find vimjay)/data/clouds.png"
-    if="false" >
+    unless="$(arg use_usb_cam)" >
     <param name="publish_rate" value="5.0"/>
   </node>
 
