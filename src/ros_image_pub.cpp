@@ -1,5 +1,5 @@
-/* rosimage
- * Copyright 2007 binarymillenium
+/* ros_image_pub
+ * Copyright 2019 Lucas Walter
  * This file is a Frei0r plugin.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -26,32 +26,37 @@
 #include <stdlib.h>
 #include <string>
 
-// extern "C" {
-#include <frei0r.h>
-// }
+// This makes the library symbols not mangled,
+// e.g. 0000000000007dc0 T f0r_deinit instead of
+// 0000000000007eb0 T _Z10f0r_deinitv
+extern "C" {
+  #include <frei0r.h>
+}
 
-typedef struct rosimage_instance {
+typedef struct ros_image_pub_instance {
   unsigned int width_;
   unsigned int height_;
-  std::string topic_ = "image";
+  std::string topic_ = "image_out";
+  std::string frame_id_ = "frei0r";
 
   ros::NodeHandle nh_;
-  ros::Subscriber sub_;
-  cv::Mat image_in_;
+  ros::Publisher pub_;
 
-  void imageCallback(const sensor_msgs::ImageConstPtr& msg)
+  void update(const unsigned char* inframe)
   {
-    cv_bridge::CvImageConstPtr cv_ptr;
-    try {
-      cv_ptr = cv_bridge::toCvShare(msg, "bgra8");
-    } catch (cv_bridge::Exception& ex) {
-      ROS_ERROR_THROTTLE(1.0, "cv bridge exception %s", ex.what());
-      return;
-    }
-    cv::resize(cv_ptr->image, image_in_,
-        cv::Size(width_, height_), cv::INTER_NEAREST);
+    sensor_msgs::Image image_out;
+    image_out.header.stamp = ros::Time::now();
+    image_out.header.frame_id = frame_id_;
+    image_out.width = width_;
+    image_out.height = height_;
+    image_out.step = width_ * 4;
+    image_out.encoding = "bgra8";
+    image_out.data.resize(image_out.step * height_);
+    std::copy(inframe, inframe + image_out.data.size(), &image_out.data[0]);
+    pub_.publish(image_out);
+    ros::spinOnce();
   }
-} rosimage_instance_t;
+} ros_image_pub_instance_t;
 
 /* Clamps a int32-range int between 0 and 255 inclusive. */
 unsigned char CLAMP0255(int32_t a) {
@@ -63,7 +68,7 @@ unsigned char CLAMP0255(int32_t a) {
 int f0r_init() {
   int argc = 0;
   ros::init(argc, nullptr, "frei0r", ros::init_options::AnonymousName);
-  ROS_INFO_STREAM("rosimage init " << ros::this_node::getName());
+  ROS_INFO_STREAM("ros_image_pub init " << ros::this_node::getName());
   return 1;
 }
 
@@ -72,15 +77,15 @@ void f0r_deinit() {
 }
 
 void f0r_get_plugin_info(f0r_plugin_info_t *inverterInfo) {
-  inverterInfo->name = "rosimage";
+  inverterInfo->name = "ros_image_pub";
   inverterInfo->author = "Lucas Walter";
-  inverterInfo->plugin_type = F0R_PLUGIN_TYPE_SOURCE;
+  inverterInfo->plugin_type = F0R_PLUGIN_TYPE_FILTER;
   inverterInfo->color_model = F0R_COLOR_MODEL_BGRA8888;
   inverterInfo->frei0r_version = FREI0R_MAJOR_VERSION;
   inverterInfo->major_version = 0;
   inverterInfo->minor_version = 1;
   inverterInfo->num_params = 1;
-  inverterInfo->explanation = "subscribes to a ros image topic";
+  inverterInfo->explanation = "publishes to a ros image topic";
 }
 
 void f0r_get_param_info(f0r_param_info_t *info, int param_index) {
@@ -94,41 +99,36 @@ void f0r_get_param_info(f0r_param_info_t *info, int param_index) {
 }
 
 f0r_instance_t f0r_construct(unsigned int width, unsigned int height) {
-  rosimage_instance_t *inst = new rosimage_instance;
+  ros_image_pub_instance_t *inst = new ros_image_pub_instance;
 
   inst->width_ = width;
   inst->height_ = height;
 
-  ROS_INFO_STREAM("rosimage construct " << ros::this_node::getName() << " "
+  ROS_INFO_STREAM("ros_image_pub construct " << ros::this_node::getName() << " "
       << width << " x " << height << " " << inst->topic_);
-  inst->sub_ = inst->nh_.subscribe<sensor_msgs::Image>(inst->topic_, 3,
-       &rosimage_instance::imageCallback, inst);
-  ROS_INFO_STREAM("subscribed");
+  inst->pub_ = inst->nh_.advertise<sensor_msgs::Image>(inst->topic_, 3);
   return (f0r_instance_t)inst;
 }
 
 void f0r_destruct(f0r_instance_t instance) {
   std::cout << "destruct\n";
-  rosimage_instance_t *inst = reinterpret_cast<rosimage_instance_t*>(instance);
+  ros_image_pub_instance_t *inst = reinterpret_cast<ros_image_pub_instance_t*>(instance);
   delete inst;
 }
 
 void f0r_set_param_value(f0r_instance_t instance, f0r_param_t param,
                          int param_index) {
   assert(instance);
-  rosimage_instance_t *inst = reinterpret_cast<rosimage_instance_t*>(instance);
+  ros_image_pub_instance_t *inst = reinterpret_cast<ros_image_pub_instance_t*>(instance);
 
   switch (param_index) {
   case 0:
     const std::string topic = std::string(*(reinterpret_cast<char**>(param)));
-    // inst->topic_ = (*(char**)(param));
-    // std::cout << inst->topic_ << "\n";
     if (topic != inst->topic_) {
       inst->topic_ = topic;
       ROS_INFO_STREAM("new topic " << inst->topic_);
-      inst->sub_.shutdown();
-      inst->sub_ = inst->nh_.subscribe<sensor_msgs::Image>(inst->topic_, 3,
-          &rosimage_instance::imageCallback, inst);
+      inst->pub_.shutdown();
+      inst->pub_ = inst->nh_.advertise<sensor_msgs::Image>(inst->topic_, 3);
     }
     break;
   }
@@ -137,7 +137,7 @@ void f0r_set_param_value(f0r_instance_t instance, f0r_param_t param,
 void f0r_get_param_value(f0r_instance_t instance, f0r_param_t param,
                          int param_index) {
   assert(instance);
-  rosimage_instance_t *inst = reinterpret_cast<rosimage_instance_t*>(instance);
+  ros_image_pub_instance_t *inst = reinterpret_cast<ros_image_pub_instance_t*>(instance);
 
   switch (param_index) {
   case 0:
@@ -151,26 +151,10 @@ void f0r_get_param_value(f0r_instance_t instance, f0r_param_t param,
 void f0r_update(f0r_instance_t instance, double time, const uint32_t *inframe,
                 uint32_t *outframe) {
   assert(instance);
-  rosimage_instance_t *inst = reinterpret_cast<rosimage_instance_t*>(instance);
+  ros_image_pub_instance_t *inst = reinterpret_cast<ros_image_pub_instance_t*>(instance);
 
-  unsigned char *dst = (unsigned char *)outframe;
-
-  ros::spinOnce();
-
-  if (inst->image_in_.empty()) {
-    ROS_INFO_STREAM("blank image");
-    inst->image_in_ = cv::Mat(cv::Size(inst->width_, inst->height_),
-                              CV_8UC4, cv::Scalar(0, 0, 0, 0));
-  }
-
-  cv::Mat tmp = inst->image_in_;
-  if ((inst->image_in_.cols != inst->width_) ||
-      (inst->image_in_.rows != inst->height_)) {
-    ROS_WARN_STREAM("size mismatch ");
-    cv::resize(inst->image_in_, tmp,
-        cv::Size(inst->width_, inst->height_), cv::INTER_NEAREST);
-  }
-
-  const size_t num_bytes = inst->width_ * inst->height_ * 4;
-  std::copy(&tmp.data[0], &tmp.data[0] + num_bytes, dst);
+  // TODO(lucasw) there is no frei0r 'sink' type, so need to do something with the output.
+  // TODO(lucasw) should this be a copy instead?
+  // outframe = inframe;
+  inst->update(reinterpret_cast<const unsigned char *>(inframe));
 }
