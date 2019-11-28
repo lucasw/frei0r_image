@@ -1,5 +1,8 @@
 mixer2: {
   none: none,
+  delay_map: /home/lucasw/other/install/lib/frei0r-1/delay_map.so,
+}
+unused: {
   Alpha Injection: /usr/lib/frei0r-1/alphainjection.so,
   Composition: /usr/lib/frei0r-1/composition.so,
   UV Map: /usr/lib/frei0r-1/uvmap.so,

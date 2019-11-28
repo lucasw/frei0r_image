@@ -596,6 +596,9 @@ void Instance::update(const ros::Time stamp)
   if ((width < 8) || (height < 8)) {
     return;
   }
+
+  const auto sz = cv::Size(width, height);
+
   image_out_msg_ = sensor_msgs::ImagePtr(new sensor_msgs::Image);
   image_out_msg_->header.stamp = stamp;
   image_out_msg_->data.resize(width * height * 4);
@@ -611,13 +614,15 @@ void Instance::update(const ros::Time stamp)
   //     (fi_.plugin_type != F0R_PLUGIN_TYPE_MIXER3)) {
   switch (fi_.plugin_type) {
     case (F0R_PLUGIN_TYPE_FILTER): {
-      if (!image_in_[0].empty()) {
+      if (!image_in_[0].empty() &&
+          (image_in_[0].cols > 0) &&
+          (image_in_[0].rows > 0)) {
         // TODO(lucasw) image_in_msg width and height may not be
         // multiples of 8
         {
           const int i = 0;
           cv::resize(image_in_[i], image_in_[i],
-              cv::Size(width, height),
+              sz,
               cv::INTER_NEAREST);
         }
         update1(instance_, time_val,
@@ -635,10 +640,16 @@ void Instance::update(const ros::Time stamp)
     case (F0R_PLUGIN_TYPE_MIXER2): {
       if (!image_in_[0].empty() && !image_in_[0].empty()) {
         for (size_t i = 0; i < 2; ++i) {
+          if (image_in_[i].cols < 1) {
+            return;
+          }
+          if (image_in_[i].rows < 1) {
+            return;
+          }
           cv::resize(image_in_[i], image_in_[i],
-              cv::Size(width, height),
-              cv::INTER_NEAREST);
+              sz, cv::INTER_NEAREST);
         }
+        // ROS_INFO_STREAM(image_in_[0].size() << " " << image_in_[1].size());
         update2(instance_, time_val,
             reinterpret_cast<uint32_t*>(&image_in_[0].data[0]),
             reinterpret_cast<uint32_t*>(&image_in_[1].data[0]),
@@ -650,9 +661,14 @@ void Instance::update(const ros::Time stamp)
     case (F0R_PLUGIN_TYPE_MIXER3): {
       if (!image_in_[0].empty() && !image_in_[0].empty()) {
         for (size_t i = 0; i < 3; ++i) {
+          if (image_in_[i].cols < 1) {
+            return;
+          }
+          if (image_in_[i].rows < 1) {
+            return;
+          }
           cv::resize(image_in_[i], image_in_[i],
-              cv::Size(width, height),
-              cv::INTER_NEAREST);
+              sz, cv::INTER_NEAREST);
         }
         update2(instance_, time_val,
             reinterpret_cast<uint32_t*>(&image_in_[0].data[0]),

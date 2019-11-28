@@ -7,13 +7,19 @@
   <arg name="config_dir" default="$(find frei0r_image)/config" />
 
   <node pkg="image_publisher" type="image_publisher"
-    name="image_source"
+    name="image_source1"
     args="$(find vimjay)/data/clouds.png"
     unless="$(arg use_usb_cam)" >
     <param name="publish_rate" value="5.0"/>
   </node>
 
-  <node name="image_source" pkg="usb_cam" type="usb_cam_node"
+  <node pkg="image_publisher" type="image_publisher"
+    name="image_source2"
+    args="$(find vimjay)/data/gradient_radial.png" >
+    <param name="publish_rate" value="5.0"/>
+  </node>
+
+  <node name="image_source1" pkg="usb_cam" type="usb_cam_node"
       if="$(arg use_usb_cam)"
       output="screen">
     <param name="image_width" value="320"/>
@@ -23,7 +29,7 @@
     <!--param name="pixel_format" value="mjpeg" /-->
     <param name="pixel_format" value="yuyv"/>
   </node>
-  <group ns="image_source/image_raw">
+  <group ns="image_source1/image_raw">
     <rosparam param="disable_pub_plugins">
       - 'image_transport/compressed'
       - 'image_transport/compressedDepth'
@@ -40,7 +46,7 @@
     <rosparam param="b_coeffs">[1.0, 0.1, 0.1, 0.1, 0.1]</rosparam>
     <param name="use_time_sequence" value="false" />
     <remap from="image_0" to="/frei0r0/image_out" />
-    <remap from="image_1" to="/image_source/image_raw" />
+    <remap from="image_1" to="/image_source1/image_raw" />
     <remap from="image_2" to="/rotozoom/image_out" />
     <remap from="image_3" to="/frei0r1/image_out" />
     <remap from="image_4" to="/frei0r2/image_out" />
@@ -51,8 +57,8 @@
     <include file="$(find frei0r_image)/launch/single.launch" >
       <arg name="width" value="$(arg width)" />
       <arg name="height" value="$(arg height)" />
-      <arg name="image_in0" value="/mix/image" />
-      <arg name="image_in1" value="/frei0r2/image_out" />
+      <arg name="image_in0" value="/image_source1/image_raw" />
+      <arg name="image_in1" value="/image_source2/image_raw" />
       <arg name="image_in2" value="/frei0r1/image_out" />
       <arg name="image_out" value="image_out" />
       <arg name="nodelet_manager" value="/manager" />
@@ -63,7 +69,7 @@
     <include file="$(find frei0r_image)/launch/single.launch" >
       <arg name="width" value="$(arg width)" />
       <arg name="height" value="$(arg height)" />
-      <arg name="image_in0" value="/image_source/image_raw" />
+      <arg name="image_in0" value="/image_source1/image_raw" />
       <arg name="image_in1" value="/frei0r2/image_out" />
       <arg name="image_in2" value="image_in2" />
       <arg name="image_out" value="image_out" />
@@ -75,7 +81,7 @@
     <include file="$(find frei0r_image)/launch/single.launch" >
       <arg name="width" value="$(arg width)" />
       <arg name="height" value="$(arg height)" />
-      <arg name="image_in0" value="/image_source/image_raw" />
+      <arg name="image_in0" value="/image_source1/image_raw" />
       <arg name="image_in1" value="/frei0r0/image_out" />
       <arg name="image_in2" value="image_in2" />
       <arg name="image_out" value="image_out" />

@@ -102,21 +102,23 @@ class DemoGui:
             widget = Widget()
             widget.name = "image pub"
             widget.tab_name = tab_name
-            widget.topic = "/image_source/image_raw"
+            widget.topic = "/image_source1/image_raw"
             widget.type = Widget.PUB
             widget.sub_type = Widget.IMAGE
             req.widgets.append(widget)
 
         # TODO(lucasw) parse the node graph and displaying all image outputs
         # instead of hardcoding.
-        widget = image_sub_widget("usb", tab_name, "/image_source/image_raw")
-        req.widgets.append(widget)
         for ind in range(3):
             widget = image_sub_widget("image sub {}".format(ind),
                                       tab_name,
                                       "/frei0r{}/image_out".format(ind))
             req.widgets.append(widget)
 
+        widget = image_sub_widget("usb", tab_name, "/image_source1/image_raw")
+        req.widgets.append(widget)
+        widget = image_sub_widget("png", tab_name, "/image_source2/image_raw")
+        req.widgets.append(widget)
         if True:
             widget = image_sub_widget("roto", tab_name, "/rotozoom/image_out")
             req.widgets.append(widget)

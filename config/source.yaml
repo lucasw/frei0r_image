@@ -1,5 +1,6 @@
 source: {
   none: none,
+  screencap: /home/lucasw/other/install/lib/frei0r-1/screencap.so,
   Ising0r: /usr/lib/frei0r-1/ising0r.so,
   Lissajous0r: /usr/lib/frei0r-1/lissajous0r.so,
   Nois0r: /usr/lib/frei0r-1/nois0r.so,
