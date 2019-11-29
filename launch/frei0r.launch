@@ -13,11 +13,11 @@
     <param name="publish_rate" value="5.0"/>
   </node>
 
-  <node pkg="image_publisher" type="image_publisher"
+  <!--node pkg="image_publisher" type="image_publisher"
     name="image_source2"
     args="$(find vimjay)/data/gradient_radial.png" >
     <param name="publish_rate" value="5.0"/>
-  </node>
+  </node-->
 
   <node name="image_source1" pkg="usb_cam" type="usb_cam_node"
       if="$(arg use_usb_cam)"
@@ -114,7 +114,7 @@
   </node>
 
   <node pkg="frei0r_image" type="demo.py" name="demo" output="screen">
-    <param name="use_image_source" value="true" unless="$(arg use_usb_cam)" />
+    <param name="use_image_source" value="true" />
   </node>
 
 </launch>

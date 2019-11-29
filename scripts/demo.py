@@ -102,7 +102,7 @@ class DemoGui:
             widget = Widget()
             widget.name = "image pub"
             widget.tab_name = tab_name
-            widget.topic = "/image_source1/image_raw"
+            widget.topic = "/image_source2/image_raw"
             widget.type = Widget.PUB
             widget.sub_type = Widget.IMAGE
             req.widgets.append(widget)
