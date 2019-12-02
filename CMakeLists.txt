@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(frei0r_image)
 
-add_compile_options(-std=c++1z)
+add_compile_options(-std=c++17)
 
 find_package(catkin REQUIRED COMPONENTS
   cv_bridge

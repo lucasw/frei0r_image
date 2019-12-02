@@ -193,11 +193,11 @@ struct Plugin
   void* handle_ = nullptr;
 
   const std::array<std::string, 4> plugin_types = {
-      "filter", "source", "mixer2", "mixer3"};
+      {"filter", "source", "mixer2", "mixer3"}};
   const std::array<std::string, 5> param_types = {
-      "bool", "double", "color", "position", "string"};
+      {"bool", "double", "color", "position", "string"}};
   const std::array<std::string, 3> color_models = {
-      "bgra", "rgba", "packed32"};
+      {"bgra", "rgba", "packed32"}};
 };
 
 class Frei0rImage : public nodelet::Nodelet
