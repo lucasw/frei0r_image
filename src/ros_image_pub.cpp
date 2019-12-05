@@ -21,6 +21,7 @@
 #include <assert.h>
 #include <cv_bridge/cv_bridge.h>
 #include <iostream>
+#include <ros/master.h>
 #include <ros/ros.h>
 #include <sensor_msgs/Image.h>
 #include <stdlib.h>
@@ -39,11 +40,23 @@ typedef struct ros_image_pub_instance {
   std::string topic_ = "image_out";
   std::string frame_id_ = "frei0r";
 
-  ros::NodeHandle nh_;
+  bool initted_ = false;
+  std::unique_ptr<ros::NodeHandle> nh_;
   ros::Publisher pub_;
 
   void update(const unsigned char* inframe)
   {
+    if (!nh_) {
+      if (!ros::master::check()) {
+        return;
+      }
+      int argc = 0;
+      // TODO(lucasw) this can go back in construct
+      ros::init(argc, nullptr, "frei0r", ros::init_options::AnonymousName);
+      ROS_INFO_STREAM("initialized ros node");
+      nh_ = std::make_unique<ros::NodeHandle>();
+      pub_ = nh_->advertise<sensor_msgs::Image>(topic_, 3);
+    }
     sensor_msgs::Image image_out;
     image_out.header.stamp = ros::Time::now();
     image_out.header.frame_id = frame_id_;
@@ -58,22 +71,14 @@ typedef struct ros_image_pub_instance {
   }
 } ros_image_pub_instance_t;
 
-/* Clamps a int32-range int between 0 and 255 inclusive. */
-unsigned char CLAMP0255(int32_t a) {
-  return (unsigned char)((((-a) >> 31) & a)  // 0 if the number was negative
-                         | (255 - a) >>
-                               31);  // -1 if the number was greater than 255
-}
-
 int f0r_init() {
   int argc = 0;
-  ros::init(argc, nullptr, "frei0r", ros::init_options::AnonymousName);
   ROS_INFO_STREAM("ros_image_pub init " << ros::this_node::getName());
   return 1;
 }
 
 void f0r_deinit() {
-  std::cout << "deinit\n";
+  ROS_INFO_STREAM("deinit");
 }
 
 void f0r_get_plugin_info(f0r_plugin_info_t *inverterInfo) {
@@ -106,7 +111,6 @@ f0r_instance_t f0r_construct(unsigned int width, unsigned int height) {
 
   ROS_INFO_STREAM("ros_image_pub construct " << ros::this_node::getName() << " "
       << width << " x " << height << " " << inst->topic_);
-  inst->pub_ = inst->nh_.advertise<sensor_msgs::Image>(inst->topic_, 3);
   return (f0r_instance_t)inst;
 }
 
@@ -127,8 +131,12 @@ void f0r_set_param_value(f0r_instance_t instance, f0r_param_t param,
     if (topic != inst->topic_) {
       inst->topic_ = topic;
       ROS_INFO_STREAM("new topic " << inst->topic_);
-      inst->pub_.shutdown();
-      inst->pub_ = inst->nh_.advertise<sensor_msgs::Image>(inst->topic_, 3);
+      if (inst->nh_) {
+        inst->pub_.shutdown();
+        if (inst->topic_ != "") {
+          inst->pub_ = inst->nh_->advertise<sensor_msgs::Image>(inst->topic_, 3);
+        }
+      }
     }
     break;
   }

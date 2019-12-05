@@ -21,6 +21,7 @@
 #include <assert.h>
 #include <cv_bridge/cv_bridge.h>
 #include <iostream>
+#include <ros/master.h>
 #include <ros/ros.h>
 #include <sensor_msgs/Image.h>
 #include <stdlib.h>
@@ -35,7 +36,7 @@ typedef struct ros_image_sub_instance {
   unsigned int height_;
   std::string topic_ = "image_in";
 
-  ros::NodeHandle nh_;
+  std::unique_ptr<ros::NodeHandle> nh_;
   ros::Subscriber sub_;
   cv::Mat image_in_;
 
@@ -101,9 +102,6 @@ f0r_instance_t f0r_construct(unsigned int width, unsigned int height) {
 
   ROS_INFO_STREAM("ros_image_sub construct " << ros::this_node::getName() << " "
       << width << " x " << height << " " << inst->topic_);
-  inst->sub_ = inst->nh_.subscribe<sensor_msgs::Image>(inst->topic_, 3,
-       &ros_image_sub_instance::imageCallback, inst);
-  ROS_INFO_STREAM("subscribed");
   return (f0r_instance_t)inst;
 }
 
@@ -126,9 +124,14 @@ void f0r_set_param_value(f0r_instance_t instance, f0r_param_t param,
     if (topic != inst->topic_) {
       inst->topic_ = topic;
       ROS_INFO_STREAM("new topic " << inst->topic_);
-      inst->sub_.shutdown();
-      inst->sub_ = inst->nh_.subscribe<sensor_msgs::Image>(inst->topic_, 3,
-          &ros_image_sub_instance::imageCallback, inst);
+      if (inst->nh_) {
+        inst->sub_.shutdown();
+        if (inst->topic_ != "") {
+          // TODO(lucasw) try in case topic is badly formatted?
+          inst->sub_ = inst->nh_->subscribe<sensor_msgs::Image>(inst->topic_, 3,
+              &ros_image_sub_instance::imageCallback, inst);
+        }
+      }
     }
     break;
   }
@@ -154,6 +157,16 @@ void f0r_update(f0r_instance_t instance, double time, const uint32_t *inframe,
   ros_image_sub_instance_t *inst = reinterpret_cast<ros_image_sub_instance_t*>(instance);
 
   unsigned char *dst = reinterpret_cast<unsigned char *>(outframe);
+
+  if (!inst->nh_) {
+    if (!ros::master::check()) {
+      return;
+    }
+    inst->nh_ = std::make_unique<ros::NodeHandle>();
+    inst->sub_ = inst->nh_->subscribe<sensor_msgs::Image>(inst->topic_, 3,
+        &ros_image_sub_instance::imageCallback, inst);
+    ROS_INFO_STREAM("subscribed to " << inst->topic_);
+  }
 
   ros::spinOnce();
 
