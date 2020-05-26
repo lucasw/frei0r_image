@@ -18,6 +18,7 @@
 #include <frei0r_image/LoadPlugin.h>
 #include <iostream>
 #include <map>
+#include <memory>
 #include <nodelet/nodelet.h>
 #include <vector>
 #include <ros/ros.h>
@@ -163,7 +164,7 @@ struct Instance
 
 struct Plugin
 {
-  Plugin(const std::string& plugin_name);
+  explicit Plugin(const std::string& plugin_name);
   ~Plugin();
   void print();
   f0r_init_t init;

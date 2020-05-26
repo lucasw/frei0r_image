@@ -14,6 +14,7 @@
 #include <frei0r.h>
 #include <iostream>
 #include <map>
+#include <memory>
 #include <nodelet/nodelet.h>
 #include <vector>
 #include <ros/ros.h>

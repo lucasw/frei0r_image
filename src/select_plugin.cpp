@@ -9,6 +9,7 @@
 #include <frei0r_image/LoadPlugin.h>
 #include <frei0r_image/frei0r_image.hpp>
 #include <map>
+#include <memory>
 #include <ros/ros.h>
 #include <string>
 #include <vector>

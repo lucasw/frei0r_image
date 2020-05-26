@@ -15,11 +15,13 @@
 #include <frei0r_image/frei0r_image.hpp>
 #include <iostream>
 #include <map>
+#include <memory>
 #include <nodelet/nodelet.h>
 #include <vector>
 #include <ros/ros.h>
 #include <sensor_msgs/Image.h>
 #include <string>
+#include <utility>
 
 namespace frei0r_image
 {
