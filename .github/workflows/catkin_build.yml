@@ -2,7 +2,7 @@ name: ROS CI
 
 on: [push]
 
-jobs:    
+jobs:
   build:
     runs-on: ubuntu-18.04
     env:
