@@ -26,6 +26,7 @@ jobs:
             sudo apt-get install -y frei0r-plugins-dev
             sudo apt-get install -y python3-catkin-pkg
             sudo apt-get install -y python3-catkin-tools
+            sudo apt-get install -y python3-osrf-pycommon
             sudo apt-get install -y python3-rosdep
             sudo apt-get install -y python3-wstool
             sudo apt-get install -y ros-$ROS_DISTRO-cv-bridge
