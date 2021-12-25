@@ -1,12 +1,12 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.0.2)
 project(frei0r_image)
 
 add_compile_options(-std=c++17)
 
 find_package(catkin REQUIRED COMPONENTS
   cv_bridge
-  dynamic_reconfigure
   ddynamic_reconfigure
+  dynamic_reconfigure
   message_generation
   message_runtime
   nodelet
@@ -35,7 +35,15 @@ generate_messages(
 
 catkin_package(
   INCLUDE_DIRS include
-  CATKIN_DEPENDS ddynamic_reconfigure
+  LIBRARIES
+  ${PROJECT_NAME}
+  CATKIN_DEPENDS
+  ddynamic_reconfigure
+  dynamic_reconfigure
+  message_runtime
+  nodelet
+  sensor_msgs
+  std_msgs
 )
 
 include_directories(
@@ -43,45 +51,59 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-add_library(frei0r_image
+add_library(${PROJECT_NAME}
   src/frei0r_image.cpp
 )
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_gencpp)
-target_link_libraries(frei0r_image
+target_link_libraries(${PROJECT_NAME}
   ${catkin_LIBRARIES}
   stdc++fs
 )
-# add_dependencies(frei0r_image ${PROJECT_NAME}_gencpp)
+# add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_gencpp)
 
-add_executable(frei0r_image_node src/frei0r_image_node.cpp)
-target_link_libraries(frei0r_image_node
+add_executable(${PROJECT_NAME}_node src/${PROJECT_NAME}_node.cpp)
+target_link_libraries(${PROJECT_NAME}_node
   ${catkin_LIBRARIES}
-  frei0r_image
+  ${PROJECT_NAME}
 )
 
 add_executable(list_frei0rs src/list_frei0rs.cpp)
 target_link_libraries(list_frei0rs
   ${catkin_LIBRARIES}
-  frei0r_image
+  ${PROJECT_NAME}
   stdc++fs
 )
 
 add_executable(select_plugin src/select_plugin.cpp)
 target_link_libraries(select_plugin
   ${catkin_LIBRARIES}
-  frei0r_image
+  ${PROJECT_NAME}
   stdc++fs
 )
 
-install(TARGETS frei0r_image select_plugin
+install(TARGETS
+  ${PROJECT_NAME}
+  ${PROJECT_NAME}_node
+  list_frei0rs
+  select_plugin
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
+install(PROGRAMS
+  scripts/demo.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
 install(FILES
   nodelet_${PROJECT_NAME}.xml
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+)
+
+install(DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+  FILES_MATCHING PATTERN "*.hpp"
 )
 
 # install(DIRECTORY config/
