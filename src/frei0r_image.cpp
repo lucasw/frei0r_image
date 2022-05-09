@@ -76,11 +76,11 @@ void Frei0rImage::onInit()
       &Frei0rImage::update, this);
 
   sub_[0] = getNodeHandle().subscribe<sensor_msgs::Image>("image_in0", 2,
-      boost::bind(&Frei0rImage::imageCallback, this, _1, 0));
+      boost::bind(&Frei0rImage::imageCallback, this, boost::placeholders::_1, 0));
   sub_[1] = getNodeHandle().subscribe<sensor_msgs::Image>("image_in1", 2,
-      boost::bind(&Frei0rImage::imageCallback, this, _1, 1));
+      boost::bind(&Frei0rImage::imageCallback, this, boost::placeholders::_1, 1));
   sub_[2] = getNodeHandle().subscribe<sensor_msgs::Image>("image_in2", 2,
-      boost::bind(&Frei0rImage::imageCallback, this, _1, 2));
+      boost::bind(&Frei0rImage::imageCallback, this, boost::placeholders::_1, 2));
 }
 
 void Frei0rImage::imageCallback(const sensor_msgs::ImageConstPtr& msg, const size_t index)
@@ -183,12 +183,12 @@ bool Frei0rImage::setupPlugin(const std::string& plugin_name)
   getPrivateNodeHandle().getParam("width", width);
   new_width_ = width;
   ddr_->registerVariable<int>("width", 320,
-      boost::bind(&Frei0rImage::widthCallback, this, _1), "width", 8, 2048);
+      boost::bind(&Frei0rImage::widthCallback, this, boost::placeholders::_1), "width", 8, 2048);
   int height = 240;
   getPrivateNodeHandle().getParam("height", height);
   new_height_ = height;
   ddr_->registerVariable<int>("height", 240,
-      boost::bind(&Frei0rImage::heightCallback, this, _1), "height", 8, 2048);
+      boost::bind(&Frei0rImage::heightCallback, this, boost::placeholders::_1), "height", 8, 2048);
 
   param_subs_.clear();
 
@@ -203,9 +203,9 @@ bool Frei0rImage::setupPlugin(const std::string& plugin_name)
       case (F0R_PARAM_BOOL): {
         ROS_INFO_STREAM(i << " bool '" << param_name << "'");
         ddr_->registerVariable<bool>(param_name, true,
-            boost::bind(&Frei0rImage::boolCallback, this, _1, i),
+            boost::bind(&Frei0rImage::boolCallback, this, boost::placeholders::_1, i),
         // ddr_->registerVariable<double>(param_name, true,
-        //     boost::bind(&Frei0rImage::doubleCallback, this, _1, i),
+        //     boost::bind(&Frei0rImage::doubleCallback, this, boost::placeholders::_1, i),
             info.explanation);
         break;
       }
@@ -213,42 +213,42 @@ bool Frei0rImage::setupPlugin(const std::string& plugin_name)
         // starting with numbers isn't allowed, so prefix everything
         ROS_INFO_STREAM(i << " double '" << param_name << "'");
         ddr_->registerVariable<double>(param_name, 0.5,
-            boost::bind(&Frei0rImage::doubleCallback, this, _1, i),
+            boost::bind(&Frei0rImage::doubleCallback, this, boost::placeholders::_1, i),
             info.explanation, 0.0, 1.0);
         param_subs_[param_name] = getPrivateNodeHandle().subscribe<std_msgs::Float32>(
             param_name, 3,
-            boost::bind(&Frei0rImage::doubleMsgCallback, this, _1, i));
+            boost::bind(&Frei0rImage::doubleMsgCallback, this, boost::placeholders::_1, i));
         break;
       }
       case (F0R_PARAM_COLOR): {
         ROS_INFO_STREAM(i << " color '" << param_name << "'");
         ddr_->registerVariable<double>(param_name + "_r", 0.5,
-            boost::bind(&Frei0rImage::colorRCallback, this, _1, i),
+            boost::bind(&Frei0rImage::colorRCallback, this, boost::placeholders::_1, i),
             info.explanation, 0.0, 1.0);
 
         ddr_->registerVariable<double>(param_name + "_g", 0.5,
-            boost::bind(&Frei0rImage::colorGCallback, this, _1, i),
+            boost::bind(&Frei0rImage::colorGCallback, this, boost::placeholders::_1, i),
             info.explanation, 0.0, 1.0);
 
         ddr_->registerVariable<double>(param_name + "_b", 0.5,
-            boost::bind(&Frei0rImage::colorBCallback, this, _1, i),
+            boost::bind(&Frei0rImage::colorBCallback, this, boost::placeholders::_1, i),
             info.explanation, 0.0, 1.0);
         break;
       }
       case (F0R_PARAM_POSITION): {
         ROS_INFO_STREAM(i << " position '" << param_name << "'");
         ddr_->registerVariable<double>(param_name + "_x", 0.5,
-            boost::bind(&Frei0rImage::positionXCallback, this, _1, i),
+            boost::bind(&Frei0rImage::positionXCallback, this, boost::placeholders::_1, i),
             info.explanation, 0.0, 1.0);
         ddr_->registerVariable<double>(param_name + "_y", 0.5,
-            boost::bind(&Frei0rImage::positionYCallback, this, _1, i),
+            boost::bind(&Frei0rImage::positionYCallback, this, boost::placeholders::_1, i),
             info.explanation, 0.0, 1.0);
         break;
       }
       case (F0R_PARAM_STRING): {
         ROS_INFO_STREAM(i << " string '" << param_name << "'");
         ddr_->registerVariable<std::string>(param_name, "",
-            boost::bind(&Frei0rImage::stringCallback, this, _1, i),
+            boost::bind(&Frei0rImage::stringCallback, this, boost::placeholders::_1, i),
             info.explanation);
         break;
       }

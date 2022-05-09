@@ -71,7 +71,7 @@ struct Selector
     for (const auto& pair : enum_map_) {
       const std::string frei0r_type_name = f0r_types_.at(pair.first);
       ddr_->registerEnumVariable<std::string>(frei0r_type_name, "none",
-          boost::bind(&Selector::select, this, _1), frei0r_type_name, pair.second);
+          boost::bind(&Selector::select, this, boost::placeholders::_1), frei0r_type_name, pair.second);
     }
     ddr_->publishServicesTopics();
   }
