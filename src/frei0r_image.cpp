@@ -685,5 +685,5 @@ void Instance::update(const ros::Time stamp)
 
 }  // namespace frei0r_image
 
-#include <pluginlib/class_list_macros.h>
+#include <pluginlib/class_list_macros.hpp>
 PLUGINLIB_EXPORT_CLASS(frei0r_image::Frei0rImage, nodelet::Nodelet)
